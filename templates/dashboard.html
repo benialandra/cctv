@@ -20,6 +20,11 @@
 .action-btn:hover{background:#334155}
 .action-btn:disabled{opacity:.5}
 @media (max-width:640px){.action-btn{flex:1 1 45%}}
+.coll-body{display:grid;grid-template-rows:1fr;transition:grid-template-rows .25s ease}
+.coll.closed .coll-body{grid-template-rows:0fr}
+.coll-body>div{overflow:hidden;min-height:0}
+.chev{display:inline-block;transition:transform .2s;color:#94a3b8}
+.coll.closed .chev{transform:rotate(-90deg)}
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
@@ -40,120 +45,164 @@
 </header>
 
 <main class="w-full p-3 md:p-4 flex flex-col xl:flex-row gap-3 md:gap-4">
-  <aside class="shrink-0 rounded-2xl bg-slate-900 ring-1 ring-slate-800 p-3 flex flex-col order-3 xl:order-1 xl:w-64">
-    <div class="flex items-center justify-between mb-2">
-      <h2 class="font-bold text-sm">Log Aktivitas <span id="logCount" class="text-slate-400 font-normal"></span></h2>
+  <aside class="coll shrink-0 rounded-2xl bg-slate-900 ring-1 ring-slate-800 order-3 xl:order-1 xl:w-64" data-coll="log" data-open="1">
+    <div class="flex items-center gap-1 p-2">
+      <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('log')">
+        <span class="font-bold text-sm">Log Aktivitas <span id="logCount" class="text-slate-400 font-normal"></span></span>
+        <span class="chev">▾</span>
+      </button>
       <button onclick="loadLog()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Muat ulang</button>
     </div>
-    <div id="logList" class="space-y-1 overflow-y-auto pr-1 max-h-[32vh] md:max-h-[40vh] xl:max-h-[72vh] text-xs">
-      <p class="text-xs text-slate-400">memuat…</p>
-    </div>
+    <div class="coll-body"><div><div class="px-3 pb-3">
+      <div id="logList" class="space-y-1 overflow-y-auto pr-1 max-h-[32vh] md:max-h-[40vh] xl:max-h-[72vh] text-xs">
+        <p class="text-xs text-slate-400">memuat…</p>
+      </div>
+    </div></div></div>
   </aside>
 
   <section class="flex-1 min-w-0 order-1 xl:order-2">
-    <div class="relative rounded-2xl overflow-hidden bg-black aspect-video shadow-2xl ring-1 ring-slate-800">
-      <video id="mainVideo" class="w-full h-full" controls muted autoplay playsinline></video>
-      <div id="modeBadge" title="LIVE" class="absolute top-3 left-3 w-3 h-3 rounded-full bg-red-600 pulse-dot pointer-events-none"></div>
-      <div id="motionBadge" class="hidden absolute top-3 right-3 px-2 py-1 rounded-full text-[11px] font-bold bg-amber-500 text-black pointer-events-none">⚠ GERAK · <span id="motionBadgeCam"></span></div>
-      <div id="mainMsg" class="absolute inset-0 hidden items-center justify-center text-center text-sm text-slate-300 bg-black/70 px-6 pointer-events-none"></div>
-    </div>
-    <div class="mt-3 flex flex-wrap items-center gap-2">
-      <button id="btnLive" onclick="playLive()" class="hidden px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 font-semibold text-sm transition">Kembali ke Live</button>
-      <button id="btnSnap" onclick="doSnap()" class="action-btn">📸 Capture</button>
-      <button id="btnRec" onclick="doRecord()" class="action-btn">⏺ Rekam</button>
-      <span id="recTimer" class="hidden text-xs font-bold text-red-400">● 00:00</span>
-      <button onclick="copyRtsp()" class="action-btn">Salin RTSP (VLC)</button>
-      <span id="rtspMsg" class="text-xs text-slate-400 w-full sm:w-auto"></span>
-    </div>
-    <div id="ptzPanel" class="mt-3 rounded-2xl bg-slate-900 ring-1 ring-slate-800 p-3">
-      <div class="flex items-center justify-between mb-2">
-        <h3 class="font-bold text-sm">Arah Kamera · <span id="ptzCam" class="text-slate-400 font-normal"></span></h3>
-        <span id="ptzMsg" class="text-xs text-slate-400"></span>
+    <div class="coll rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="live" data-open="1">
+      <div class="flex items-center gap-1 p-2">
+        <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('live')">
+          <span class="font-bold text-sm"><span id="liveTitle">Live</span></span>
+          <span class="chev">▾</span>
+        </button>
       </div>
-      <div class="flex flex-wrap gap-4 items-start">
-        <div class="grid grid-cols-3 gap-1 w-36 shrink-0" id="ptzPad">
-          <button data-ptz="up-left" class="ptz-btn" title="Serong kiri atas">↖</button>
-          <button data-ptz="up" class="ptz-btn" title="Atas">▲</button>
-          <button data-ptz="up-right" class="ptz-btn" title="Serong kanan atas">↗</button>
-          <button data-ptz="left" class="ptz-btn" title="Kiri">◀</button>
-          <button data-ptz="home" class="ptz-btn" title="Posisi awal">⌂</button>
-          <button data-ptz="right" class="ptz-btn" title="Kanan">▶</button>
-          <button data-ptz="down-left" class="ptz-btn" title="Serong kiri bawah">↙</button>
-          <button data-ptz="down" class="ptz-btn" title="Bawah">▼</button>
-          <button data-ptz="down-right" class="ptz-btn" title="Serong kanan bawah">↘</button>
+      <div class="coll-body"><div><div class="px-3 pb-3">
+        <div class="relative rounded-2xl overflow-hidden bg-black aspect-video shadow-2xl ring-1 ring-slate-800">
+          <video id="mainVideo" class="w-full h-full" controls muted autoplay playsinline></video>
+          <div id="modeBadge" title="LIVE" class="absolute top-3 left-3 w-3 h-3 rounded-full bg-red-600 pulse-dot pointer-events-none"></div>
+          <div id="motionBadge" class="hidden absolute top-3 right-3 px-2 py-1 rounded-full text-[11px] font-bold bg-amber-500 text-black pointer-events-none">⚠ GERAK · <span id="motionBadgeCam"></span></div>
+          <div id="mainMsg" class="absolute inset-0 hidden items-center justify-center text-center text-sm text-slate-300 bg-black/70 px-6 pointer-events-none"></div>
         </div>
-        <div class="flex flex-col gap-1 min-w-[10rem] flex-1">
-          <div class="flex gap-1">
-            <button data-ptz="zoom-in" class="ptz-btn flex-1" title="Zoom masuk">＋ Zoom</button>
-            <button data-ptz="zoom-out" class="ptz-btn flex-1" title="Zoom keluar">－ Zoom</button>
-          </div>
-          <div class="flex gap-1">
-            <button data-ptz="focus-in" class="ptz-btn flex-1" title="Fokus dekat">＋ Fokus</button>
-            <button data-ptz="focus-out" class="ptz-btn flex-1" title="Fokus jauh">－ Fokus</button>
-          </div>
-          <button data-ptz="stop" class="ptz-btn" title="Berhenti">■ Berhenti</button>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <button id="btnLive" onclick="playLive()" class="hidden px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 font-semibold text-sm transition">Kembali ke Live</button>
+          <button id="btnSnap" onclick="doSnap()" class="action-btn">📸 Capture</button>
+          <button id="btnRec" onclick="doRecord()" class="action-btn">⏺ Rekam</button>
+          <span id="recTimer" class="hidden text-xs font-bold text-red-400">● 00:00</span>
+          <button onclick="copyRtsp()" class="action-btn">Salin RTSP (VLC)</button>
+          <span id="rtspMsg" class="text-xs text-slate-400 w-full sm:w-auto"></span>
         </div>
-      </div>
-      <p class="text-[11px] text-slate-500 mt-2">Tahan tombol arah / zoom / fokus untuk menggerakkan, lepas untuk berhenti.</p>
+      </div></div></div>
     </div>
-    <details class="mt-3 rounded-2xl bg-slate-900 ring-1 ring-slate-800 p-3">
-      <summary class="font-bold text-sm cursor-pointer">File Manual <span id="manCount" class="text-slate-400 font-normal"></span></summary>
-      <p class="text-[11px] text-slate-500 mt-1">Hasil capture & rekaman manual, tersimpan di server (tidak ikut hapus otomatis).</p>
-      <div id="manSnaps" class="grid grid-cols-3 sm:grid-cols-4 gap-1 mt-2"></div>
-      <div id="manClips" class="space-y-1 mt-2 text-sm"></div>
-    </details>
+    <div id="ptzPanel" class="coll mt-3 rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="ptz" data-open="1">
+      <div class="flex items-center gap-1 p-2">
+        <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('ptz')">
+          <span class="font-bold text-sm">Arah Kamera · <span id="ptzCam" class="text-slate-400 font-normal"></span></span>
+          <span class="chev">▾</span>
+        </button>
+        <span id="ptzMsg" class="text-xs text-slate-400 pr-1"></span>
+      </div>
+      <div class="coll-body"><div><div class="px-3 pb-3">
+        <div class="flex flex-wrap gap-4 items-start">
+          <div class="grid grid-cols-3 gap-1 w-36 shrink-0" id="ptzPad">
+            <button data-ptz="up-left" class="ptz-btn" title="Serong kiri atas">↖</button>
+            <button data-ptz="up" class="ptz-btn" title="Atas">▲</button>
+            <button data-ptz="up-right" class="ptz-btn" title="Serong kanan atas">↗</button>
+            <button data-ptz="left" class="ptz-btn" title="Kiri">◀</button>
+            <button data-ptz="home" class="ptz-btn" title="Posisi awal">⌂</button>
+            <button data-ptz="right" class="ptz-btn" title="Kanan">▶</button>
+            <button data-ptz="down-left" class="ptz-btn" title="Serong kiri bawah">↙</button>
+            <button data-ptz="down" class="ptz-btn" title="Bawah">▼</button>
+            <button data-ptz="down-right" class="ptz-btn" title="Serong kanan bawah">↘</button>
+          </div>
+          <div class="flex flex-col gap-1 min-w-[10rem] flex-1">
+            <div class="flex gap-1">
+              <button data-ptz="zoom-in" class="ptz-btn flex-1" title="Zoom masuk">＋ Zoom</button>
+              <button data-ptz="zoom-out" class="ptz-btn flex-1" title="Zoom keluar">－ Zoom</button>
+            </div>
+            <div class="flex gap-1">
+              <button data-ptz="focus-in" class="ptz-btn flex-1" title="Fokus dekat">＋ Fokus</button>
+              <button data-ptz="focus-out" class="ptz-btn flex-1" title="Fokus jauh">－ Fokus</button>
+            </div>
+            <button data-ptz="stop" class="ptz-btn" title="Berhenti">■ Berhenti</button>
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-2">Tahan tombol arah / zoom / fokus untuk menggerakkan, lepas untuk berhenti.</p>
+      </div></div></div>
+    </div>
+    <div class="coll mt-3 rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="manual" data-open="0">
+      <div class="flex items-center gap-1 p-2">
+        <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('manual')">
+          <span class="font-bold text-sm">File Manual <span id="manCount" class="text-slate-400 font-normal"></span></span>
+          <span class="chev">▾</span>
+        </button>
+      </div>
+      <div class="coll-body"><div><div class="px-3 pb-3">
+        <p class="text-[11px] text-slate-500 mt-1">Hasil capture & rekaman manual, tersimpan di server (tidak ikut hapus otomatis).</p>
+        <div id="manSnaps" class="grid grid-cols-3 sm:grid-cols-4 gap-1 mt-2"></div>
+        <div id="manClips" class="space-y-1 mt-2 text-sm"></div>
+      </div></div></div>
+    </div>
   </section>
 
   <div class="flex flex-col gap-3 md:gap-4 shrink-0 min-w-0 order-2 xl:order-3 xl:w-80">
-  <div class="rounded-2xl bg-slate-900 ring-1 ring-slate-800 p-3">
-    <div class="flex items-center justify-between mb-1">
-      <h2 class="font-bold text-sm">Sensor Gerak <span id="motionCount" class="text-slate-400 font-normal"></span></h2>
+  <div class="coll rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="motion" data-open="1">
+    <div class="flex items-center gap-1 p-2">
+      <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('motion')">
+        <span class="font-bold text-sm">Sensor Gerak <span id="motionCount" class="text-slate-400 font-normal"></span></span>
+        <span class="chev">▾</span>
+      </button>
       <button onclick="motionRead()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Tandai dibaca</button>
     </div>
-    <p id="motionStat" class="text-[11px] text-slate-500 mb-1">memantau…</p>
-    <div id="motionList" class="space-y-1 overflow-y-auto pr-1 max-h-[24vh] xl:max-h-[26vh] text-xs">
-      <p class="text-xs text-slate-400">memuat…</p>
-    </div>
+    <div class="coll-body"><div><div class="px-3 pb-3">
+      <p id="motionStat" class="text-[11px] text-slate-500 mb-1">memantau…</p>
+      <div id="motionList" class="space-y-1 overflow-y-auto pr-1 max-h-[24vh] xl:max-h-[26vh] text-xs">
+        <p class="text-xs text-slate-400">memuat…</p>
+      </div>
+    </div></div></div>
   </div>
 
-  <aside class="rounded-2xl bg-slate-900 ring-1 ring-slate-800 p-3 flex flex-col">
-    <div class="flex items-center justify-between mb-2">
-      <h2 class="font-bold text-sm">Rekaman <span id="recCount" class="text-slate-400 font-normal"></span></h2>
+  <aside class="coll rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="rec" data-open="1">
+    <div class="flex items-center gap-1 p-2">
+      <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('rec')">
+        <span class="font-bold text-sm">Rekaman <span id="recCount" class="text-slate-400 font-normal"></span></span>
+        <span class="chev">▾</span>
+      </button>
       <button onclick="loadArch()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Muat ulang</button>
     </div>
-    <div class="flex gap-1 mb-1">
-      <input id="recDate" type="date" class="flex-1 min-w-0 text-xs px-2 py-1.5 rounded-lg bg-slate-800 text-slate-100" title="Tanggal rekaman">
-      <select id="recHour" class="text-xs px-2 py-1.5 rounded-lg bg-slate-800 text-slate-100" title="Jam rekaman">
-        <option value="">Semua jam</option>
-      </select>
-    </div>
-    <div class="flex gap-1 mb-1">
-      <button onclick="searchArch()" class="flex-1 text-xs px-3 py-1.5 rounded-lg bg-sky-700 hover:bg-sky-600 transition font-semibold">Cari tanggal</button>
-      <button onclick="resetArch()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Reset</button>
-    </div>
-    <p id="recInfo" class="text-[11px] text-slate-500 mb-1"></p>
-    <div id="recList" class="overflow-y-auto space-y-1 pr-1 max-h-[32vh] md:max-h-[40vh] xl:max-h-[52vh]">
-      <p class="text-xs text-slate-400">memuat…</p>
-    </div>
-    <div class="flex items-center justify-between mt-2 text-xs">
-      <button id="pgPrev" onclick="archGoto(-1)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">‹ Sebelum</button>
-      <span id="pgInfo" class="text-slate-400"></span>
-      <button id="pgNext" onclick="archGoto(1)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Sesudah ›</button>
-    </div>
+    <div class="coll-body"><div><div class="px-3 pb-3 flex flex-col">
+      <div class="flex gap-1 mb-1">
+        <input id="recDate" type="date" class="flex-1 min-w-0 text-xs px-2 py-1.5 rounded-lg bg-slate-800 text-slate-100" title="Tanggal rekaman">
+        <select id="recHour" class="text-xs px-2 py-1.5 rounded-lg bg-slate-800 text-slate-100" title="Jam rekaman">
+          <option value="">Semua jam</option>
+        </select>
+      </div>
+      <div class="flex gap-1 mb-1">
+        <button onclick="searchArch()" class="flex-1 text-xs px-3 py-1.5 rounded-lg bg-sky-700 hover:bg-sky-600 transition font-semibold">Cari tanggal</button>
+        <button onclick="resetArch()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Reset</button>
+      </div>
+      <p id="recInfo" class="text-[11px] text-slate-500 mb-1"></p>
+      <div id="recList" class="overflow-y-auto space-y-1 pr-1 max-h-[32vh] md:max-h-[40vh] xl:max-h-[52vh]">
+        <p class="text-xs text-slate-400">memuat…</p>
+      </div>
+      <div class="flex items-center justify-between mt-2 text-xs">
+        <button id="pgPrev" onclick="archGoto(-1)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">‹ Sebelum</button>
+        <span id="pgInfo" class="text-slate-400"></span>
+        <button id="pgNext" onclick="archGoto(1)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Sesudah ›</button>
+      </div>
+    </div></div></div>
   </aside>
   </div>
 </main>
 
-<details class="w-full px-3 md:px-4 pb-2">
-  <summary class="text-xs text-slate-400 cursor-pointer hover:text-slate-200">Metric Server <span id="metUpd" class="text-slate-500"></span></summary>
-  <div class="mt-2 rounded-xl ring-1 ring-slate-800 bg-slate-900 p-3">
-    <div id="metGrid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 text-xs">
-      <p class="text-xs text-slate-400">memuat…</p>
-    </div>
-    <p class="text-[11px] text-slate-500 mt-2">Diperbarui tiap 5 menit agar server tetap adem.</p>
+<div class="coll w-full px-3 md:px-4 pb-2" data-coll="metric" data-open="0">
+  <div class="flex items-center gap-1">
+    <button class="flex items-center gap-2 text-left py-1" onclick="toggleColl('metric')">
+      <span class="text-xs text-slate-400">Metric Server <span id="metUpd" class="text-slate-500"></span></span>
+      <span class="chev text-xs">▾</span>
+    </button>
   </div>
-</details>
-<footer class="w-full px-3 md:px-4 pb-6 text-[11px] text-slate-500">Live HLS · arsip MP4 10-menit (retensi 7 hari) · status live tiap 3 detik · metrik server tiap 5 menit</footer>
+  <div class="coll-body"><div><div class="pt-1">
+    <div class="rounded-xl ring-1 ring-slate-800 bg-slate-900 p-3">
+      <div id="metGrid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 text-xs">
+        <p class="text-xs text-slate-400">memuat…</p>
+      </div>
+      <p class="text-[11px] text-slate-500 mt-2">Diperbarui tiap 5 menit agar server tetap adem.</p>
+    </div>
+  </div></div></div>
+</div>
+<footer class="w-full px-3 md:px-4 pb-6 text-[11px] text-slate-500">Live HLS · arsip MP4 10-menit (retensi 7 hari) · status live tiap 3 detik · metrik server tiap 5 menit · ketuk judul tiap panel untuk melipat / membuka</footer>
 
 <script>
 const CAMS=["__CAMS__"];
@@ -162,6 +211,21 @@ const v=document.getElementById("mainVideo");
 const badge=document.getElementById("modeBadge");
 const msg=document.getElementById("mainMsg");
 let hls=null;
+
+// ---- Panel lipat (collapse/expand), pilihan diingat per browser ----
+function toggleColl(id){
+ const el=document.querySelector('[data-coll="'+id+'"]'); if(!el)return;
+ el.classList.toggle("closed");
+ try{localStorage.setItem("coll_"+id,el.classList.contains("closed")?"0":"1");}catch(e){}
+}
+function initColl(){
+ document.querySelectorAll("[data-coll]").forEach(el=>{
+  const id=el.dataset.coll;
+  let open=el.dataset.open==="1";
+  try{const s=localStorage.getItem("coll_"+id); if(s==="0")open=false; else if(s==="1")open=true;}catch(e){}
+  el.classList.toggle("closed",!open);
+ });
+}
 
 function setBadge(t,live){
  badge.title=live?("LIVE — "+liveCam):t;
@@ -395,7 +459,7 @@ async function ptzSend(cmd){
  }catch(e){ m.textContent="✖ PTZ gagal ("+e.message+")"; }
 }
 function ptzStop(){ fetch("/api/ptz",{method:"POST",headers:{"Content-Type":"application/json"},
-  body:JSON.stringify({cam:liveCam,cmd:"stop"})}).catch(()=>{}); }
+ body:JSON.stringify({cam:liveCam,cmd:"stop"})}).catch(()=>{}); }
 (function(){
  const pad=document.getElementById("ptzPad");
  document.getElementById("ptzCam").textContent=liveCam;
@@ -475,6 +539,8 @@ async function loadMotion(){
  }catch(e){}
 }
 
+initColl();
+document.getElementById("liveTitle").textContent="Live · "+liveCam;
 tickClock(); setInterval(tickClock,10000);
 loadArch(); loadLog(); setInterval(loadLog,30000);
 loadMetrics(); setInterval(loadMetrics,300000);
