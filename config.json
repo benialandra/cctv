@@ -1,0 +1,18 @@
+{
+  "scan_time": "2026-09-17T11:20:00",
+  "wifi_ip": "192.168.1.11",
+  "gateway": "192.168.1.1",
+  "netblocks": ["192.168.1.0/24"],
+  "dvr": [
+    {"ip": "192.168.1.5",  "vendor": "XiongMai H264DVR 1.0", "web": 80, "rtsp": 554, "mac": "9c:1c:37:71:d4:09"},
+    {"ip": "192.168.1.8",  "vendor": "XiongMai H264DVR 1.0", "web": 80, "rtsp": 554, "mac": "9c:1c:37:71:d4:09"}
+  ],
+  "chars": [
+    {"nama": "depan",    "kanal": 1, "dvr": "192.168.1.5"},
+    {"nama": "belakang", "kanal": 2, "dvr": "192.168.1.5"},
+    {"nama": "belakang2","kanal": 3, "dvr": "192.168.1.5"},
+    {"nama": "depan2",   "kanal": 4, "dvr": "192.168.1.5"}
+  ],
+  "template": "rtsp://%%USER%%:%%PASS%%@192.168.1.5:554/user=%%USER%%&password=%%PASS%%&channel=%%CH%%&stream=0.sdp?real_stream",
+  "hls": {"bitrate_k": 1500, "max_height": 720, "seg_sec": 4, "seg_fmt": "fmp4"}
+}

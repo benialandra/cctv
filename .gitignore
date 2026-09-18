@@ -1,0 +1,18 @@
+# repo /data/cctv berdiri sendiri (abaikan di repo luar)
+# rahasia — jangan pernah commit
+.env
+.secrets
+.telegram.env
+*-api-key
+*.key
+
+# data & runtime — jangan commit
+recordings/
+nas/
+tmp/
+__pycache__/
+*.log
+*.pid
+session.session
+.state.json
+downloaded.json
