@@ -1,555 +1,729 @@
 <!doctype html>
 <html lang="id">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CCTV — Live & Putar Ulang</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="/hls.js"></script>
-<style>
-.pulse-dot{animation:pulse 1.4s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-#recList::-webkit-scrollbar{width:8px}
-#recList::-webkit-scrollbar-track{background:transparent}
-#recList::-webkit-scrollbar-thumb{background:#334155;border-radius:4px}
-.ptz-btn{padding:.7rem .5rem;border-radius:.75rem;background:#1e293b;font-size:.9rem;font-weight:600;line-height:1.2;transition:background .15s;user-select:none;-webkit-user-select:none;touch-action:none;min-height:2.75rem}
-.ptz-btn:hover{background:#334155}
-.ptz-btn:active{background:#475569}
-.ptz-btn:disabled{opacity:.5}
-.action-btn{padding:.6rem 1rem;border-radius:.75rem;background:#1e293b;font-size:.875rem;transition:background .15s;min-height:2.75rem}
-.action-btn:hover{background:#334155}
-.action-btn:disabled{opacity:.5}
-@media (max-width:640px){.action-btn{flex:1 1 45%}}
-.coll-body{display:grid;grid-template-rows:1fr;transition:grid-template-rows .25s ease}
-.coll.closed .coll-body{grid-template-rows:0fr}
-.coll-body>div{overflow:hidden;min-height:0}
-.chev{display:inline-block;transition:transform .2s;color:#94a3b8}
-.coll.closed .chev{transform:rotate(-90deg)}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CCTV — Live & Putar Ulang</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/hls.js"></script>
+  <style>
+    .pulse-dot {
+      animation: pulse 1.4s ease-in-out infinite
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .3
+      }
+    }
+
+    #recList::-webkit-scrollbar {
+      width: 8px
+    }
+
+    #recList::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    #recList::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px
+    }
+
+    .ptz-btn {
+      padding: .7rem .5rem;
+      border-radius: .75rem;
+      background: #1e293b;
+      font-size: .9rem;
+      font-weight: 600;
+      line-height: 1.2;
+      transition: background .15s;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      min-height: 2.75rem
+    }
+
+    .ptz-btn:hover {
+      background: #334155
+    }
+
+    .ptz-btn:active {
+      background: #475569
+    }
+
+    .ptz-btn:disabled {
+      opacity: .5
+    }
+
+    .action-btn {
+      padding: .6rem 1rem;
+      border-radius: .75rem;
+      background: #1e293b;
+      font-size: .875rem;
+      transition: background .15s;
+      min-height: 2.75rem
+    }
+
+    .action-btn:hover {
+      background: #334155
+    }
+
+    .action-btn:disabled {
+      opacity: .5
+    }
+
+    @media (max-width:640px) {
+      .action-btn {
+        flex: 1 1 45%
+      }
+    }
+
+    .coll-body {
+      display: grid;
+      grid-template-rows: 1fr;
+      transition: grid-template-rows .25s ease
+    }
+
+    .coll.closed .coll-body {
+      grid-template-rows: 0fr
+    }
+
+    .coll-body>div {
+      overflow: hidden;
+      min-height: 0
+    }
+
+    .chev {
+      display: inline-block;
+      transition: transform .2s;
+      color: #94a3b8
+    }
+
+    .coll.closed .chev {
+      transform: rotate(-90deg)
+    }
+  </style>
 </head>
+
 <body class="bg-slate-950 text-slate-100 min-h-screen">
-<header class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-800 sticky top-0 z-10">
-  <div class="w-full px-3 md:px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-    <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center font-black">C</div>
-      <div>
-        <h1 class="font-bold leading-tight">CCTV Rumah</h1>
-        <p id="clock" class="text-xs text-slate-400">—</p>
+  <header
+    class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-800 sticky top-0 z-10">
+    <div class="w-full px-3 md:px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center font-black">C</div>
+        <div>
+          <h1 class="font-bold leading-tight">CCTV Rumah</h1>
+          <p id="clock" class="text-xs text-slate-400">—</p>
+        </div>
+      </div>
+      <div class="text-right text-xs flex flex-col items-end gap-1">
+        <div id="liveStat" class="font-semibold">menghubungkan…</div>
+        <div class="flex items-center gap-2">
+          <div id="diskStat" class="text-slate-400"></div>
+          <button onclick="openMetric()"
+            class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition text-xs font-semibold">Metric
+            Server</button>
+        </div>
       </div>
     </div>
-    <div class="text-right text-xs flex flex-col items-end gap-1">
-      <div id="liveStat" class="font-semibold">menghubungkan…</div>
-      <div class="flex items-center gap-2">
-        <div id="diskStat" class="text-slate-400"></div>
-        <button onclick="openMetric()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition text-xs font-semibold">Metric Server</button>
-      </div>
-    </div>
-  </div>
-</header>
+  </header>
 
-<main class="w-full p-3 md:p-4 flex flex-col xl:flex-row gap-3 md:gap-4">
-  <aside class="coll shrink-0 rounded-2xl bg-slate-900 ring-1 ring-slate-800 order-3 xl:order-1 xl:w-64" data-coll="log" data-open="1">
-    <div class="flex items-center gap-1 p-2">
-      <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('log')">
-        <span class="font-bold text-sm">Log Aktivitas <span id="logCount" class="text-slate-400 font-normal"></span></span>
-        <span class="chev">▾</span>
-      </button>
-      <button onclick="loadLog()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Muat ulang</button>
-    </div>
-    <div class="coll-body"><div><div class="px-3 pb-3">
-      <div id="logList" class="space-y-1 overflow-y-auto pr-1 max-h-[32vh] md:max-h-[40vh] xl:max-h-[72vh] text-xs">
-        <p class="text-xs text-slate-400">memuat…</p>
-      </div>
-    </div></div></div>
-  </aside>
-
-  <section class="flex-1 min-w-0 order-1 xl:order-2">
-    <div class="coll rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="live" data-open="1">
+  <main class="w-full p-3 md:p-4 flex flex-col xl:flex-row gap-3 md:gap-4">
+    <aside class="coll shrink-0 rounded-2xl bg-slate-900 ring-1 ring-slate-800 order-3 xl:order-1 xl:w-64"
+      data-coll="log" data-open="1">
       <div class="flex items-center gap-1 p-2">
-        <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('live')">
-          <span class="font-bold text-sm"><span id="liveTitle">Live</span></span>
+        <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('log')">
+          <span class="font-bold text-sm">Log Aktivitas <span id="logCount"
+              class="text-slate-400 font-normal"></span></span>
           <span class="chev">▾</span>
         </button>
+        <button onclick="loadLog()"
+          class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Muat ulang</button>
       </div>
-      <div class="coll-body"><div><div class="px-3 pb-3">
-        <div class="relative rounded-2xl overflow-hidden bg-black aspect-video shadow-2xl ring-1 ring-slate-800">
-          <video id="mainVideo" class="w-full h-full" controls muted autoplay playsinline></video>
-          <div id="modeBadge" title="LIVE" class="absolute top-3 left-3 w-3 h-3 rounded-full bg-red-600 pulse-dot pointer-events-none"></div>
-          <div id="motionBadge" class="hidden absolute top-3 right-3 px-2 py-1 rounded-full text-[11px] font-bold bg-amber-500 text-black pointer-events-none">⚠ GERAK · <span id="motionBadgeCam"></span></div>
-          <div id="mainMsg" class="absolute inset-0 hidden items-center justify-center text-center text-sm text-slate-300 bg-black/70 px-6 pointer-events-none"></div>
-        </div>
-        <div class="mt-3 flex flex-wrap items-center gap-2">
-          <button id="btnLive" onclick="playLive()" class="hidden px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 font-semibold text-sm transition">Kembali ke Live</button>
-          <button id="btnSnap" onclick="doSnap()" class="action-btn">📸 Capture</button>
-          <button id="btnRec" onclick="doRecord()" class="action-btn">⏺ Rekam</button>
-          <span id="recTimer" class="hidden text-xs font-bold text-red-400">● 00:00</span>
-          <button onclick="copyRtsp()" class="action-btn">Salin RTSP (VLC)</button>
-          <span id="rtspMsg" class="text-xs text-slate-400 w-full sm:w-auto"></span>
-        </div>
-      </div></div></div>
-    </div>
-    <div id="ptzPanel" class="coll mt-3 rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="ptz" data-open="1">
-      <div class="flex items-center gap-1 p-2">
-        <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('ptz')">
-          <span class="font-bold text-sm">Arah Kamera · <span id="ptzCam" class="text-slate-400 font-normal"></span></span>
-          <span class="chev">▾</span>
-        </button>
-        <span id="ptzMsg" class="text-xs text-slate-400 pr-1"></span>
-      </div>
-      <div class="coll-body"><div><div class="px-3 pb-3">
-        <div class="flex flex-wrap gap-4 items-start">
-          <div class="grid grid-cols-3 gap-1 w-36 shrink-0" id="ptzPad">
-            <button data-ptz="up-left" class="ptz-btn" title="Serong kiri atas">↖</button>
-            <button data-ptz="up" class="ptz-btn" title="Atas">▲</button>
-            <button data-ptz="up-right" class="ptz-btn" title="Serong kanan atas">↗</button>
-            <button data-ptz="left" class="ptz-btn" title="Kiri">◀</button>
-            <button data-ptz="home" class="ptz-btn" title="Posisi awal">⌂</button>
-            <button data-ptz="right" class="ptz-btn" title="Kanan">▶</button>
-            <button data-ptz="down-left" class="ptz-btn" title="Serong kiri bawah">↙</button>
-            <button data-ptz="down" class="ptz-btn" title="Bawah">▼</button>
-            <button data-ptz="down-right" class="ptz-btn" title="Serong kanan bawah">↘</button>
-          </div>
-          <div class="flex flex-col gap-1 min-w-[10rem] flex-1">
-            <div class="flex gap-1">
-              <button data-ptz="zoom-in" class="ptz-btn flex-1" title="Zoom masuk">＋ Zoom</button>
-              <button data-ptz="zoom-out" class="ptz-btn flex-1" title="Zoom keluar">－ Zoom</button>
+      <div class="coll-body">
+        <div>
+          <div class="px-3 pb-3">
+            <div id="logList"
+              class="space-y-1 overflow-y-auto pr-1 max-h-[32vh] md:max-h-[40vh] xl:max-h-[72vh] text-xs">
+              <p class="text-xs text-slate-400">memuat…</p>
             </div>
-            <div class="flex gap-1">
-              <button data-ptz="focus-in" class="ptz-btn flex-1" title="Fokus dekat">＋ Fokus</button>
-              <button data-ptz="focus-out" class="ptz-btn flex-1" title="Fokus jauh">－ Fokus</button>
-            </div>
-            <button data-ptz="stop" class="ptz-btn" title="Berhenti">■ Berhenti</button>
           </div>
         </div>
-        <p class="text-[11px] text-slate-500 mt-2">Tahan tombol arah / zoom / fokus untuk menggerakkan, lepas untuk berhenti.</p>
-      </div></div></div>
-    </div>
-    <div class="coll mt-3 rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="manual" data-open="0">
-      <div class="flex items-center gap-1 p-2">
-        <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('manual')">
-          <span class="font-bold text-sm">File Manual <span id="manCount" class="text-slate-400 font-normal"></span></span>
-          <span class="chev">▾</span>
-        </button>
       </div>
-      <div class="coll-body"><div><div class="px-3 pb-3">
-        <p class="text-[11px] text-slate-500 mt-1">Hasil capture & rekaman manual, tersimpan di server (tidak ikut hapus otomatis).</p>
-        <div id="manSnaps" class="grid grid-cols-3 sm:grid-cols-4 gap-1 mt-2"></div>
-        <div id="manClips" class="space-y-1 mt-2 text-sm"></div>
-      </div></div></div>
-    </div>
-  </section>
+    </aside>
 
-  <div class="flex flex-col gap-3 md:gap-4 shrink-0 min-w-0 order-2 xl:order-3 xl:w-80">
-  <div class="coll rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="motion" data-open="1">
-    <div class="flex items-center gap-1 p-2">
-      <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('motion')">
-        <span class="font-bold text-sm">Sensor Gerak <span id="motionCount" class="text-slate-400 font-normal"></span></span>
-        <span class="chev">▾</span>
-      </button>
-      <button onclick="motionRead()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Tandai dibaca</button>
+    <section class="flex-1 min-w-0 order-1 xl:order-2">
+      <div class="coll rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="live" data-open="1">
+        <div class="flex items-center gap-1 p-2">
+          <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('live')">
+            <span class="font-bold text-sm"><span id="liveTitle">Live</span></span>
+            <span class="chev">▾</span>
+          </button>
+        </div>
+        <div class="coll-body">
+          <div>
+            <div class="px-3 pb-3">
+              <div class="relative rounded-2xl overflow-hidden bg-black aspect-video shadow-2xl ring-1 ring-slate-800">
+                <video id="mainVideo" class="w-full h-full" controls muted autoplay playsinline></video>
+                <div id="modeBadge" title="LIVE"
+                  class="absolute top-3 left-3 w-3 h-3 rounded-full bg-red-600 pulse-dot pointer-events-none"></div>
+                <div id="motionBadge"
+                  class="hidden absolute top-3 right-3 px-2 py-1 rounded-full text-[11px] font-bold bg-amber-500 text-black pointer-events-none">
+                  ⚠ GERAK · <span id="motionBadgeCam"></span></div>
+                <div id="mainMsg"
+                  class="absolute inset-0 hidden items-center justify-center text-center text-sm text-slate-300 bg-black/70 px-6 pointer-events-none">
+                </div>
+              </div>
+              <div class="mt-3 flex flex-wrap items-center gap-2">
+                <button id="btnLive" onclick="playLive()"
+                  class="hidden px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 font-semibold text-sm transition">Kembali
+                  ke Live</button>
+                <button id="btnSnap" onclick="doSnap()" class="action-btn">📸 Capture</button>
+                <button id="btnRec" onclick="doRecord()" class="action-btn">⏺ Rekam</button>
+                <span id="recTimer" class="hidden text-xs font-bold text-red-400">● 00:00</span>
+                <button onclick="copyRtsp()" class="action-btn">Salin RTSP (VLC)</button>
+                <span id="rtspMsg" class="text-xs text-slate-400 w-full sm:w-auto"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="ptzPanel" class="coll mt-3 rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="ptz" data-open="1">
+        <div class="flex items-center gap-1 p-2">
+          <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('ptz')">
+            <span class="font-bold text-sm">Arah Kamera · <span id="ptzCam"
+                class="text-slate-400 font-normal"></span></span>
+            <span class="chev">▾</span>
+          </button>
+          <span id="ptzMsg" class="text-xs text-slate-400 pr-1"></span>
+        </div>
+        <div class="coll-body">
+          <div>
+            <div class="px-3 pb-3">
+              <div class="flex flex-wrap gap-4 items-start">
+                <div class="grid grid-cols-3 gap-1 w-36 shrink-0" id="ptzPad">
+                  <button data-ptz="up-left" class="ptz-btn" title="Serong kiri atas">↖</button>
+                  <button data-ptz="up" class="ptz-btn" title="Atas">▲</button>
+                  <button data-ptz="up-right" class="ptz-btn" title="Serong kanan atas">↗</button>
+                  <button data-ptz="left" class="ptz-btn" title="Kiri">◀</button>
+                  <button data-ptz="home" class="ptz-btn" title="Posisi awal">⌂</button>
+                  <button data-ptz="right" class="ptz-btn" title="Kanan">▶</button>
+                  <button data-ptz="down-left" class="ptz-btn" title="Serong kiri bawah">↙</button>
+                  <button data-ptz="down" class="ptz-btn" title="Bawah">▼</button>
+                  <button data-ptz="down-right" class="ptz-btn" title="Serong kanan bawah">↘</button>
+                </div>
+                <div class="flex flex-col gap-1 min-w-[10rem] flex-1">
+                  <div class="flex gap-1">
+                    <button data-ptz="zoom-in" class="ptz-btn flex-1" title="Zoom masuk">＋ Zoom</button>
+                    <button data-ptz="zoom-out" class="ptz-btn flex-1" title="Zoom keluar">－ Zoom</button>
+                  </div>
+                  <div class="flex gap-1">
+                    <button data-ptz="focus-in" class="ptz-btn flex-1" title="Fokus dekat">＋ Fokus</button>
+                    <button data-ptz="focus-out" class="ptz-btn flex-1" title="Fokus jauh">－ Fokus</button>
+                  </div>
+                  <button data-ptz="stop" class="ptz-btn" title="Berhenti">■ Berhenti</button>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-2">Tahan tombol arah / zoom / fokus untuk menggerakkan, lepas
+                untuk berhenti.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="coll mt-3 rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="manual" data-open="0">
+        <div class="flex items-center gap-1 p-2">
+          <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('manual')">
+            <span class="font-bold text-sm">File Manual <span id="manCount"
+                class="text-slate-400 font-normal"></span></span>
+            <span class="chev">▾</span>
+          </button>
+        </div>
+        <div class="coll-body">
+          <div>
+            <div class="px-3 pb-3">
+              <p class="text-[11px] text-slate-500 mt-1">Hasil capture & rekaman manual, tersimpan di server (tidak ikut
+                hapus otomatis).</p>
+              <div id="manSnaps" class="grid grid-cols-3 sm:grid-cols-4 gap-1 mt-2"></div>
+              <div id="manClips" class="space-y-1 mt-2 text-sm"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="flex flex-col gap-3 md:gap-4 shrink-0 min-w-0 order-2 xl:order-3 xl:w-80">
+      <div class="coll rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="motion" data-open="1">
+        <div class="flex items-center gap-1 p-2">
+          <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('motion')">
+            <span class="font-bold text-sm">Sensor Gerak <span id="motionCount"
+                class="text-slate-400 font-normal"></span></span>
+            <span class="chev">▾</span>
+          </button>
+          <button onclick="motionRead()"
+            class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Tandai dibaca</button>
+        </div>
+        <div class="coll-body">
+          <div>
+            <div class="px-3 pb-3">
+              <p id="motionStat" class="text-[11px] text-slate-500 mb-1">memantau…</p>
+              <div id="motionList" class="space-y-1 overflow-y-auto pr-1 max-h-[24vh] xl:max-h-[26vh] text-xs">
+                <p class="text-xs text-slate-400">memuat…</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="coll rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="rec" data-open="1">
+        <div class="flex items-center gap-1 p-2">
+          <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('rec')">
+            <span class="font-bold text-sm">Rekaman <span id="recCount"
+                class="text-slate-400 font-normal"></span></span>
+            <span class="chev">▾</span>
+          </button>
+          <button onclick="loadArch()"
+            class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Muat ulang</button>
+        </div>
+        <div class="coll-body">
+          <div>
+            <div class="px-3 pb-3 flex flex-col">
+              <div class="flex gap-1 mb-1">
+                <input id="recDate" type="date"
+                  class="flex-1 min-w-0 text-xs px-2 py-1.5 rounded-lg bg-slate-800 text-slate-100"
+                  title="Tanggal rekaman">
+                <select id="recHour" class="text-xs px-2 py-1.5 rounded-lg bg-slate-800 text-slate-100"
+                  title="Jam rekaman">
+                  <option value="">Semua jam</option>
+                </select>
+              </div>
+              <div class="flex gap-1 mb-1">
+                <button onclick="searchArch()"
+                  class="flex-1 text-xs px-3 py-1.5 rounded-lg bg-sky-700 hover:bg-sky-600 transition font-semibold">Cari
+                  tanggal</button>
+                <button onclick="resetArch()"
+                  class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Reset</button>
+              </div>
+              <p id="recInfo" class="text-[11px] text-slate-500 mb-1"></p>
+              <div id="recList" class="overflow-y-auto space-y-1 pr-1 max-h-[32vh] md:max-h-[40vh] xl:max-h-[52vh]">
+                <p class="text-xs text-slate-400">memuat…</p>
+              </div>
+              <div class="flex items-center justify-between mt-2 text-xs">
+                <button id="pgPrev" onclick="archGoto(-1)"
+                  class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">‹ Sebelum</button>
+                <span id="pgInfo" class="text-slate-400"></span>
+                <button id="pgNext" onclick="archGoto(1)"
+                  class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Sesudah ›</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
     </div>
-    <div class="coll-body"><div><div class="px-3 pb-3">
-      <p id="motionStat" class="text-[11px] text-slate-500 mb-1">memantau…</p>
-      <div id="motionList" class="space-y-1 overflow-y-auto pr-1 max-h-[24vh] xl:max-h-[26vh] text-xs">
+  </main>
+
+  <div id="metricModal" class="fixed inset-0 z-50 items-center justify-center p-4" style="display:none">
+    <div class="absolute inset-0 bg-black/70" onclick="closeMetric()"></div>
+    <div class="relative w-full max-w-2xl rounded-2xl bg-slate-900 ring-1 ring-slate-700 p-4 shadow-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-bold text-sm">Metric Server <span id="metUpd" class="text-slate-500 font-normal"></span></h2>
+        <button onclick="closeMetric()"
+          class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition text-xs font-semibold">✕
+          Tutup</button>
+      </div>
+      <div id="metGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
         <p class="text-xs text-slate-400">memuat…</p>
       </div>
-    </div></div></div>
-  </div>
-
-  <aside class="coll rounded-2xl bg-slate-900 ring-1 ring-slate-800" data-coll="rec" data-open="1">
-    <div class="flex items-center gap-1 p-2">
-      <button class="flex-1 flex items-center justify-between text-left px-1 py-1" onclick="toggleColl('rec')">
-        <span class="font-bold text-sm">Rekaman <span id="recCount" class="text-slate-400 font-normal"></span></span>
-        <span class="chev">▾</span>
-      </button>
-      <button onclick="loadArch()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Muat ulang</button>
+      <p class="text-[11px] text-slate-500 mt-2">Diperbarui tiap 5 menit agar server tetap adem.</p>
     </div>
-    <div class="coll-body"><div><div class="px-3 pb-3 flex flex-col">
-      <div class="flex gap-1 mb-1">
-        <input id="recDate" type="date" class="flex-1 min-w-0 text-xs px-2 py-1.5 rounded-lg bg-slate-800 text-slate-100" title="Tanggal rekaman">
-        <select id="recHour" class="text-xs px-2 py-1.5 rounded-lg bg-slate-800 text-slate-100" title="Jam rekaman">
-          <option value="">Semua jam</option>
-        </select>
-      </div>
-      <div class="flex gap-1 mb-1">
-        <button onclick="searchArch()" class="flex-1 text-xs px-3 py-1.5 rounded-lg bg-sky-700 hover:bg-sky-600 transition font-semibold">Cari tanggal</button>
-        <button onclick="resetArch()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Reset</button>
-      </div>
-      <p id="recInfo" class="text-[11px] text-slate-500 mb-1"></p>
-      <div id="recList" class="overflow-y-auto space-y-1 pr-1 max-h-[32vh] md:max-h-[40vh] xl:max-h-[52vh]">
-        <p class="text-xs text-slate-400">memuat…</p>
-      </div>
-      <div class="flex items-center justify-between mt-2 text-xs">
-        <button id="pgPrev" onclick="archGoto(-1)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">‹ Sebelum</button>
-        <span id="pgInfo" class="text-slate-400"></span>
-        <button id="pgNext" onclick="archGoto(1)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition">Sesudah ›</button>
-      </div>
-    </div></div></div>
-  </aside>
   </div>
-</main>
+  <footer class="w-full px-3 md:px-4 pb-6 text-[11px] text-slate-500">Live HLS · arsip MP4 10-menit (retensi 7 hari) ·
+    status live tiap 3 detik · metrik server tiap 5 menit · ketuk judul tiap panel untuk melipat / membuka</footer>
 
-<div id="metricModal" class="fixed inset-0 z-50 items-center justify-center p-4" style="display:none">
-  <div class="absolute inset-0 bg-black/70" onclick="closeMetric()"></div>
-  <div class="relative w-full max-w-2xl rounded-2xl bg-slate-900 ring-1 ring-slate-700 p-4 shadow-2xl">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="font-bold text-sm">Metric Server <span id="metUpd" class="text-slate-500 font-normal"></span></h2>
-      <button onclick="closeMetric()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition text-xs font-semibold">✕ Tutup</button>
-    </div>
-    <div id="metGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-      <p class="text-xs text-slate-400">memuat…</p>
-    </div>
-    <p class="text-[11px] text-slate-500 mt-2">Diperbarui tiap 5 menit agar server tetap adem.</p>
-  </div>
-</div>
-<footer class="w-full px-3 md:px-4 pb-6 text-[11px] text-slate-500">Live HLS · arsip MP4 10-menit (retensi 7 hari) · status live tiap 3 detik · metrik server tiap 5 menit · ketuk judul tiap panel untuk melipat / membuka</footer>
+  <script>
+    const CAMS = ["__CAMS__"];
+    const liveCam = CAMS[0];
+    const v = document.getElementById("mainVideo");
+    const badge = document.getElementById("modeBadge");
+    const msg = document.getElementById("mainMsg");
+    let hls = null;
 
-<script>
-const CAMS=["__CAMS__"];
-const liveCam=CAMS[0];
-const v=document.getElementById("mainVideo");
-const badge=document.getElementById("modeBadge");
-const msg=document.getElementById("mainMsg");
-let hls=null;
+    // ---- Panel lipat (collapse/expand), pilihan diingat per browser ----
+    function toggleColl(id) {
+      const el = document.querySelector('[data-coll="' + id + '"]'); if (!el) return;
+      el.classList.toggle("closed");
+      try { localStorage.setItem("coll_" + id, el.classList.contains("closed") ? "0" : "1"); } catch (e) { }
+    }
+    function initColl() {
+      document.querySelectorAll("[data-coll]").forEach(el => {
+        const id = el.dataset.coll;
+        let open = el.dataset.open === "1";
+        try { const s = localStorage.getItem("coll_" + id); if (s === "0") open = false; else if (s === "1") open = true; } catch (e) { }
+        el.classList.toggle("closed", !open);
+      });
+    }
 
-// ---- Panel lipat (collapse/expand), pilihan diingat per browser ----
-function toggleColl(id){
- const el=document.querySelector('[data-coll="'+id+'"]'); if(!el)return;
- el.classList.toggle("closed");
- try{localStorage.setItem("coll_"+id,el.classList.contains("closed")?"0":"1");}catch(e){}
-}
-function initColl(){
- document.querySelectorAll("[data-coll]").forEach(el=>{
-  const id=el.dataset.coll;
-  let open=el.dataset.open==="1";
-  try{const s=localStorage.getItem("coll_"+id); if(s==="0")open=false; else if(s==="1")open=true;}catch(e){}
-  el.classList.toggle("closed",!open);
- });
-}
+    function setBadge(t, live) {
+      badge.title = live ? ("LIVE — " + liveCam) : t;
+      badge.className = "absolute top-3 left-3 w-3 h-3 rounded-full pointer-events-none " + (live ? "bg-red-600 pulse-dot" : "bg-sky-600");
+    }
+    function showMsg(t) { msg.textContent = t || ""; msg.style.display = t ? "flex" : "none"; }
+    function markActive(el) { document.querySelectorAll("#recList a").forEach(a => a.classList.remove("bg-slate-700", "ring-1", "ring-sky-500")); if (el) el.classList.add("bg-slate-700", "ring-1", "ring-sky-500"); }
 
-function setBadge(t,live){
- badge.title=live?("LIVE — "+liveCam):t;
- badge.className="absolute top-3 left-3 w-3 h-3 rounded-full pointer-events-none "+(live?"bg-red-600 pulse-dot":"bg-sky-600");
-}
-function showMsg(t){ msg.textContent=t||""; msg.style.display=t?"flex":"none"; }
-function markActive(el){ document.querySelectorAll("#recList a").forEach(a=>a.classList.remove("bg-slate-700","ring-1","ring-sky-500")); if(el)el.classList.add("bg-slate-700","ring-1","ring-sky-500"); }
-
-function playLive(){
- if(hls){hls.destroy();hls=null;}
- setBadge("LIVE",true); showMsg(""); markActive(null);
- document.getElementById("btnLive").classList.add("hidden");
- document.getElementById("ptzPanel").style.display="";
- document.getElementById("ptzCam").textContent=liveCam;
- sendLog("live","",liveCam);
- if(window.Hls&&Hls.isSupported()){
-  hls=new Hls({maxBufferLength:20});
-  hls.on(Hls.Events.ERROR,(ev,d)=>{if(d.fatal)showMsg("Gangguan live: "+d.details+" — coba muat ulang halaman.");});
-  hls.loadSource("/hls/"+liveCam+"/index.m3u8"); hls.attachMedia(v);
- }else if(v.canPlayType("application/vnd.apple.mpegurl")){ v.src="/hls/"+liveCam+"/index.m3u8"; }
- else{ showMsg("Browser tidak mendukung HLS — pakai Chrome/Edge/Safari terbaru."); return; }
- v.muted=true; v.play().catch(()=>showMsg("Klik video untuk mulai memutar."));
-}
-function playRec(cam,f,label,el){
- if(hls){hls.destroy();hls=null;}
- setBadge("Putar ulang: "+label,false); showMsg(""); markActive(el);
- v.src="/dl/"+encodeURIComponent(cam)+"/"+encodeURIComponent(f);
- v.play().catch(()=>{});
- document.getElementById("btnLive").classList.remove("hidden");
- document.getElementById("ptzPanel").style.display="none";
- sendLog("replay",f,cam);
-}
-function playManual(cam,f){
- if(hls){hls.destroy();hls=null;}
- setBadge("Manual: "+fmtRec(f),false); showMsg(""); markActive(null);
- v.src="/manual/"+encodeURIComponent(cam)+"/"+encodeURIComponent(f);
- v.play().catch(()=>{});
- document.getElementById("btnLive").classList.remove("hidden");
- document.getElementById("ptzPanel").style.display="none";
- sendLog("replay","manual "+f,cam);
-}
-document.getElementById("manClips").addEventListener("click",ev=>{
- const a=ev.target.closest("a[data-mf]"); if(!a)return; ev.preventDefault();
- playManual(a.dataset.mcam,a.dataset.mf);
-});
-// ---- Capture & rekam manual ----
-async function doSnap(){
- const b=document.getElementById("btnSnap"), m=document.getElementById("rtspMsg");
- b.disabled=true; m.textContent="… menjepret";
- try{
-  const j=await fetch("/api/snapshot",{method:"POST",headers:{"Content-Type":"application/json"},
-   body:JSON.stringify({cam:liveCam})}).then(x=>x.json());
-  if(!j.ok)throw new Error(j.err||"gagal");
-  m.textContent="✓ tersimpan "+j.file;
-  sendLog("snap",j.file,liveCam); loadManual();
- }catch(e){ m.textContent="✖ capture gagal ("+e.message+")"; }
- finally{ b.disabled=false; }
-}
-let recOn=false, recTick=null, recSec=0;
-function fmtT(s){ return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); }
-function recUI(on){
- recOn=on;
- const b=document.getElementById("btnRec"), t=document.getElementById("recTimer");
- b.textContent=on?"■ Stop":"⏺ Rekam";
- b.classList.toggle("bg-red-600",on); b.classList.toggle("hover:bg-red-500",on);
- b.classList.toggle("bg-slate-800",!on); b.classList.toggle("hover:bg-slate-700",!on);
- t.classList.toggle("hidden",!on);
- if(on){ recSec=0; t.textContent="● 00:00";
-  clearInterval(recTick); recTick=setInterval(()=>{recSec++;t.textContent="● "+fmtT(recSec);},1000);
- }else clearInterval(recTick);
-}
-async function doRecord(){
- const b=document.getElementById("btnRec"), m=document.getElementById("rtspMsg");
- b.disabled=true;
- try{
-  const j=await fetch("/api/record",{method:"POST",headers:{"Content-Type":"application/json"},
-   body:JSON.stringify({cam:liveCam,action:recOn?"stop":"start"})}).then(x=>x.json());
-  if(!j.ok)throw new Error(j.err||"gagal");
-  if(j.recording){ recUI(true); m.textContent="● merekam "+j.file; }
-  else{ recUI(false); m.textContent=`✓ tersimpan ${j.file} (${j.dur} dtk)`;
-   sendLog("rec",j.file+" "+j.dur+" dtk",liveCam); loadManual(); }
- }catch(e){ m.textContent="✖ rekam gagal ("+e.message+")"; }
- finally{ b.disabled=false; }
-}
-async function syncRecord(){
- try{
-  const r=await fetch("/api/record").then(x=>x.json());
-  const s=r[liveCam];
-  if(s&&s.recording){ recUI(true); recSec=s.elapsed||0;
-   document.getElementById("recTimer").textContent="● "+fmtT(recSec); }
-  else recUI(false);
- }catch(e){}
-}
-async function loadManual(){
- const sn=document.getElementById("manSnaps"), cl=document.getElementById("manClips");
- try{
-  const r=await fetch("/api/manual").then(x=>x.json());
-  const d=r[liveCam]||{clips:[],snaps:[]};
-  const n=d.clips.length+d.snaps.length;
-  document.getElementById("manCount").textContent=n?`(${n})`:"";
-  sn.innerHTML=d.snaps.length?d.snaps.map(o=>
-   `<a href="/snaps/${liveCam}/${o.f}" target="_blank" title="${o.f}">
+    function playLive() {
+      if (hls) { hls.destroy(); hls = null; }
+      setBadge("LIVE", true); showMsg(""); markActive(null);
+      document.getElementById("btnLive").classList.add("hidden");
+      document.getElementById("ptzPanel").style.display = "";
+      document.getElementById("ptzCam").textContent = liveCam;
+      sendLog("live", "", liveCam);
+      if (window.Hls && Hls.isSupported()) {
+        hls = new Hls({ maxBufferLength: 20 });
+        hls.on(Hls.Events.ERROR, (ev, d) => { if (d.fatal) showMsg("Gangguan live: " + d.details + " — coba muat ulang halaman."); });
+        hls.loadSource("/hls/" + liveCam + "/index.m3u8"); hls.attachMedia(v);
+      } else if (v.canPlayType("application/vnd.apple.mpegurl")) { v.src = "/hls/" + liveCam + "/index.m3u8"; }
+      else { showMsg("Browser tidak mendukung HLS — pakai Chrome/Edge/Safari terbaru."); return; }
+      v.muted = true; v.play().catch(() => showMsg("Klik video untuk mulai memutar."));
+    }
+    function playRec(cam, f, label, el) {
+      if (hls) { hls.destroy(); hls = null; }
+      setBadge("Putar ulang: " + label, false); showMsg(""); markActive(el);
+      v.src = "/dl/" + encodeURIComponent(cam) + "/" + encodeURIComponent(f);
+      v.play().catch(() => { });
+      document.getElementById("btnLive").classList.remove("hidden");
+      document.getElementById("ptzPanel").style.display = "none";
+      sendLog("replay", f, cam);
+    }
+    function playManual(cam, f) {
+      if (hls) { hls.destroy(); hls = null; }
+      setBadge("Manual: " + fmtRec(f), false); showMsg(""); markActive(null);
+      v.src = "/manual/" + encodeURIComponent(cam) + "/" + encodeURIComponent(f);
+      v.play().catch(() => { });
+      document.getElementById("btnLive").classList.remove("hidden");
+      document.getElementById("ptzPanel").style.display = "none";
+      sendLog("replay", "manual " + f, cam);
+    }
+    document.getElementById("manClips").addEventListener("click", ev => {
+      const a = ev.target.closest("a[data-mf]"); if (!a) return; ev.preventDefault();
+      playManual(a.dataset.mcam, a.dataset.mf);
+    });
+    // ---- Capture & rekam manual ----
+    async function doSnap() {
+      const b = document.getElementById("btnSnap"), m = document.getElementById("rtspMsg");
+      b.disabled = true; m.textContent = "… menjepret";
+      try {
+        const j = await fetch("/api/snapshot", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cam: liveCam })
+        }).then(x => x.json());
+        if (!j.ok) throw new Error(j.err || "gagal");
+        m.textContent = "✓ tersimpan " + j.file;
+        sendLog("snap", j.file, liveCam); loadManual();
+      } catch (e) { m.textContent = "✖ capture gagal (" + e.message + ")"; }
+      finally { b.disabled = false; }
+    }
+    let recOn = false, recTick = null, recSec = 0;
+    function fmtT(s) { return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); }
+    function recUI(on) {
+      recOn = on;
+      const b = document.getElementById("btnRec"), t = document.getElementById("recTimer");
+      b.textContent = on ? "■ Stop" : "⏺ Rekam";
+      b.classList.toggle("bg-red-600", on); b.classList.toggle("hover:bg-red-500", on);
+      b.classList.toggle("bg-slate-800", !on); b.classList.toggle("hover:bg-slate-700", !on);
+      t.classList.toggle("hidden", !on);
+      if (on) {
+        recSec = 0; t.textContent = "● 00:00";
+        clearInterval(recTick); recTick = setInterval(() => { recSec++; t.textContent = "● " + fmtT(recSec); }, 1000);
+      } else clearInterval(recTick);
+    }
+    async function doRecord() {
+      const b = document.getElementById("btnRec"), m = document.getElementById("rtspMsg");
+      b.disabled = true;
+      try {
+        const j = await fetch("/api/record", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cam: liveCam, action: recOn ? "stop" : "start" })
+        }).then(x => x.json());
+        if (!j.ok) throw new Error(j.err || "gagal");
+        if (j.recording) { recUI(true); m.textContent = "● merekam " + j.file; }
+        else {
+          recUI(false); m.textContent = `✓ tersimpan ${j.file} (${j.dur} dtk)`;
+          sendLog("rec", j.file + " " + j.dur + " dtk", liveCam); loadManual();
+        }
+      } catch (e) { m.textContent = "✖ rekam gagal (" + e.message + ")"; }
+      finally { b.disabled = false; }
+    }
+    async function syncRecord() {
+      try {
+        const r = await fetch("/api/record").then(x => x.json());
+        const s = r[liveCam];
+        if (s && s.recording) {
+          recUI(true); recSec = s.elapsed || 0;
+          document.getElementById("recTimer").textContent = "● " + fmtT(recSec);
+        }
+        else recUI(false);
+      } catch (e) { }
+    }
+    async function loadManual() {
+      const sn = document.getElementById("manSnaps"), cl = document.getElementById("manClips");
+      try {
+        const r = await fetch("/api/manual").then(x => x.json());
+        const d = r[liveCam] || { clips: [], snaps: [] };
+        const n = d.clips.length + d.snaps.length;
+        document.getElementById("manCount").textContent = n ? `(${n})` : "";
+        sn.innerHTML = d.snaps.length ? d.snaps.map(o =>
+          `<a href="/snaps/${liveCam}/${o.f}" target="_blank" title="${o.f}">
       <img src="/snaps/${liveCam}/${o.f}" loading="lazy" class="rounded-lg w-full aspect-video object-cover ring-1 ring-slate-700">
-    </a>`).join(""):'<p class="text-xs text-slate-400 col-span-3">belum ada snapshot.</p>';
-  cl.innerHTML=d.clips.length?d.clips.map(o=>
-   `<div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/60">
-      <a href="#" data-mcam="${liveCam}" data-mf="${o.f}" class="flex-1 hover:text-sky-300 transition">${fmtRec(o.f)} <span class="text-[11px] text-slate-400">· ${(o.size/1048576).toFixed(1).replace(".",",")} MB</span></a>
+    </a>`).join("") : '<p class="text-xs text-slate-400 col-span-3">belum ada snapshot.</p>';
+        cl.innerHTML = d.clips.length ? d.clips.map(o =>
+          `<div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/60">
+      <a href="#" data-mcam="${liveCam}" data-mf="${o.f}" class="flex-1 hover:text-sky-300 transition">${fmtRec(o.f)} <span class="text-[11px] text-slate-400">· ${(o.size / 1048576).toFixed(1).replace(".", ",")} MB</span></a>
       <a href="/manual/${liveCam}/${o.f}" download class="text-xs px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 transition">⬇</a>
-    </div>`).join(""):'<p class="text-xs text-slate-400">belum ada klip.</p>';
- }catch(e){}
-}
-v.addEventListener("click",()=>v.play().catch(()=>{}));
-v.addEventListener("waiting",()=>{});
-document.getElementById("btnLive").onclick=playLive;
+    </div>`).join("") : '<p class="text-xs text-slate-400">belum ada klip.</p>';
+      } catch (e) { }
+    }
+    v.addEventListener("click", () => v.play().catch(() => { }));
+    v.addEventListener("waiting", () => { });
+    document.getElementById("btnLive").onclick = playLive;
 
-async function copyRtsp(){
- const m=document.getElementById("rtspMsg"); m.textContent="… menyalin";
- try{
-  const t=await fetch("/api/rtsp?cam="+liveCam+"&stream=1").then(x=>{if(!x.ok)throw 0;return x.text();});
-   await navigator.clipboard.writeText(t);
-   m.textContent="✓ tersalin — tempel di VLC (khusus jaringan lokal)";
-   sendLog("rtsp","salin URL stream",liveCam);
- }catch(e){ m.textContent="✖ gagal menyalin"; }
-}
+    async function copyRtsp() {
+      const m = document.getElementById("rtspMsg"); m.textContent = "… menyalin";
+      try {
+        const t = await fetch("/api/rtsp?cam=" + liveCam + "&stream=1").then(x => { if (!x.ok) throw 0; return x.text(); });
+        await navigator.clipboard.writeText(t);
+        m.textContent = "✓ tersalin — tempel di VLC (khusus jaringan lokal)";
+        sendLog("rtsp", "salin URL stream", liveCam);
+      } catch (e) { m.textContent = "✖ gagal menyalin"; }
+    }
 
-let archItems=[], archPage=1; const PER_PAGE=10;
-const BULAN=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
-function fmtRec(f){
- const m=f.match(/^(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})/);
- if(!m)return f.replace(/\.mp4$/,"");
- return `${+m[3]} ${BULAN[+m[2]-1]} ${m[1]} · ${m[4]}:${m[5]}`;
-}
-function renderArch(){
- const box=document.getElementById("recList");
- const total=archItems.length, pages=Math.max(1,Math.ceil(total/PER_PAGE));
- if(archPage>pages)archPage=pages; if(archPage<1)archPage=1;
- box.innerHTML="";
- const slice=archItems.slice((archPage-1)*PER_PAGE,archPage*PER_PAGE);
- for(const o of slice){
-  const mb=(o.size/1048576).toFixed(1).replace(".",",");
-  box.insertAdjacentHTML("beforeend",
-   `<a href="#" data-cam="${o.cam}" data-f="${o.f}" class="block px-3 py-2 rounded-xl hover:bg-slate-800 transition">
+    let archItems = [], archPage = 1; const PER_PAGE = 10;
+    const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+    function fmtRec(f) {
+      const m = f.match(/^(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})/);
+      if (!m) return f.replace(/\.mp4$/, "");
+      return `${+m[3]} ${BULAN[+m[2] - 1]} ${m[1]} · ${m[4]}:${m[5]}`;
+    }
+    function renderArch() {
+      const box = document.getElementById("recList");
+      const total = archItems.length, pages = Math.max(1, Math.ceil(total / PER_PAGE));
+      if (archPage > pages) archPage = pages; if (archPage < 1) archPage = 1;
+      box.innerHTML = "";
+      const slice = archItems.slice((archPage - 1) * PER_PAGE, archPage * PER_PAGE);
+      for (const o of slice) {
+        const mb = (o.size / 1048576).toFixed(1).replace(".", ",");
+        box.insertAdjacentHTML("beforeend",
+          `<a href="#" data-cam="${o.cam}" data-f="${o.f}" class="block px-3 py-2 rounded-xl hover:bg-slate-800 transition">
       <div class="text-sm font-medium">${fmtRec(o.f)}</div>
       <div class="text-[11px] text-slate-400">${o.cam} · ${mb} MB · ±10 mnt</div>
     </a>`);
- }
- document.getElementById("recCount").textContent=total?`(${total})`:"";
- document.getElementById("pgInfo").textContent=total?`Hal ${archPage}/${pages}`:"";
- document.getElementById("pgPrev").style.visibility=archPage<=1?"hidden":"visible";
- document.getElementById("pgNext").style.visibility=archPage>=pages?"hidden":"visible";
- if(!total)box.innerHTML='<p class="text-xs text-slate-400">tidak ada rekaman.</p>';
-}
-function archGoto(d){ archPage+=d; renderArch(); }
-async function loadArch(){
- const box=document.getElementById("recList");
- const info=document.getElementById("recInfo");
- const d=document.getElementById("recDate").value;
- const h=document.getElementById("recHour").value;
- let url="/api/archive?limit=200";
- if(d)url+="&date="+encodeURIComponent(d);
- if(h)url+="&hour="+encodeURIComponent(h);
- try{
-  const r=await fetch(url).then(x=>{if(!x.ok)throw 0;return x.json();});
-  archItems=[];
-  for(const c of Object.keys(r))
-   for(const o of (r[c]||[]))archItems.push({cam:c,f:o.f,size:o.size});
-  archItems.sort((a,b)=>a.f<b.f?1:-1); // terbaru dulu
-  archPage=1; renderArch();
-  info.textContent=d||h?`Hasil: ${archItems.length} rekaman`
-   + (d?` · ${d}`:"") + (h?` · jam ${h}:00`:"")
-   :`${archItems.length} rekaman terbaru`;
- }catch(e){ box.innerHTML='<p class="text-xs text-slate-400">gagal memuat daftar.</p>'; }
-}
-function searchArch(){ archPage=1; loadArch();
- const d=document.getElementById("recDate").value;
- const h=document.getElementById("recHour").value;
- sendLog("search",(d||"semua tanggal")+(h?` jam ${h}`:""));
-}
-function resetArch(){ document.getElementById("recDate").value="";
- document.getElementById("recHour").value=""; archPage=1; loadArch(); }
-// isi pilihan jam 00-23 + batasi tanggal s/d hari ini
-(function(){ const s=document.getElementById("recHour");
- for(let i=0;i<24;i++){ const hh=String(i).padStart(2,"0");
-  s.insertAdjacentHTML("beforeend",`<option value="${hh}">${hh}:00</option>`); }
- document.getElementById("recDate").max=new Date().toISOString().slice(0,10);
-})();
-document.getElementById("recList").addEventListener("click",ev=>{
- const a=ev.target.closest("a[data-f]"); if(!a)return; ev.preventDefault();
- playRec(a.dataset.cam,a.dataset.f,a.textContent.trim().split("\n")[0],a);
-});
+      }
+      document.getElementById("recCount").textContent = total ? `(${total})` : "";
+      document.getElementById("pgInfo").textContent = total ? `Hal ${archPage}/${pages}` : "";
+      document.getElementById("pgPrev").style.visibility = archPage <= 1 ? "hidden" : "visible";
+      document.getElementById("pgNext").style.visibility = archPage >= pages ? "hidden" : "visible";
+      if (!total) box.innerHTML = '<p class="text-xs text-slate-400">tidak ada rekaman.</p>';
+    }
+    function archGoto(d) { archPage += d; renderArch(); }
+    async function loadArch() {
+      const box = document.getElementById("recList");
+      const info = document.getElementById("recInfo");
+      const d = document.getElementById("recDate").value;
+      const h = document.getElementById("recHour").value;
+      let url = "/api/archive?limit=200";
+      if (d) url += "&date=" + encodeURIComponent(d);
+      if (h) url += "&hour=" + encodeURIComponent(h);
+      try {
+        const r = await fetch(url).then(x => { if (!x.ok) throw 0; return x.json(); });
+        archItems = [];
+        for (const c of Object.keys(r))
+          for (const o of (r[c] || [])) archItems.push({ cam: c, f: o.f, size: o.size });
+        archItems.sort((a, b) => a.f < b.f ? 1 : -1); // terbaru dulu
+        archPage = 1; renderArch();
+        info.textContent = d || h ? `Hasil: ${archItems.length} rekaman`
+          + (d ? ` · ${d}` : "") + (h ? ` · jam ${h}:00` : "")
+          : `${archItems.length} rekaman terbaru`;
+      } catch (e) { box.innerHTML = '<p class="text-xs text-slate-400">gagal memuat daftar.</p>'; }
+    }
+    function searchArch() {
+      archPage = 1; loadArch();
+      const d = document.getElementById("recDate").value;
+      const h = document.getElementById("recHour").value;
+      sendLog("search", (d || "semua tanggal") + (h ? ` jam ${h}` : ""));
+    }
+    function resetArch() {
+      document.getElementById("recDate").value = "";
+      document.getElementById("recHour").value = ""; archPage = 1; loadArch();
+    }
+    // isi pilihan jam 00-23 + batasi tanggal s/d hari ini
+    (function () {
+      const s = document.getElementById("recHour");
+      for (let i = 0; i < 24; i++) {
+        const hh = String(i).padStart(2, "0");
+        s.insertAdjacentHTML("beforeend", `<option value="${hh}">${hh}:00</option>`);
+      }
+      document.getElementById("recDate").max = new Date().toISOString().slice(0, 10);
+    })();
+    document.getElementById("recList").addEventListener("click", ev => {
+      const a = ev.target.closest("a[data-f]"); if (!a) return; ev.preventDefault();
+      playRec(a.dataset.cam, a.dataset.f, a.textContent.trim().split("\n")[0], a);
+    });
 
-function tickClock(){
- const d=new Date();
- document.getElementById("clock").textContent=d.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"})+" · "+d.toLocaleTimeString("id-ID");
-}
-// ---- Log aktivitas ----
-function sendLog(event,detail,cam){
- fetch("/api/log",{method:"POST",headers:{"Content-Type":"application/json"},
-  body:JSON.stringify({event:event||"buka",detail:detail||"",cam:cam||liveCam})})
-  .then(()=>loadLog()).catch(()=>{});
-}
-const LOG_LABEL={live:"Live",replay:"Putar ulang",ptz:"PTZ",rtsp:"Salin RTSP",search:"Cari arsip",buka:"Buka",motion:"Gerak",tamper:"Tamper",snap:"Capture",rec:"Rekam"};
-async function loadLog(){
- const box=document.getElementById("logList");
- try{
-  const r=await fetch("/api/log?limit=30").then(x=>x.json());
-  document.getElementById("logCount").textContent=r.length?`(${r.length})`:"";
-  if(!r.length){box.innerHTML='<p class="text-xs text-slate-400">belum ada aktivitas.</p>';return;}
-  box.innerHTML="";
-  for(const o of r){
-   const w=o.ts?new Date(o.ts*1000).toLocaleString("id-ID",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"—";
-   const lbl=LOG_LABEL[o.event]||o.event||"—";
-   const det=[o.cam,o.detail].filter(Boolean).join(" · ");
-   box.insertAdjacentHTML("beforeend",
-    `<div class="px-3 py-1.5 rounded-lg bg-slate-800/60 flex justify-between gap-2">
-       <span><b>${lbl}</b>${det?` <span class="text-slate-400">· ${det}</span>`:""}</span>
+    function tickClock() {
+      const d = new Date();
+      document.getElementById("clock").textContent = d.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) + " · " + d.toLocaleTimeString("id-ID");
+    }
+    // ---- Log aktivitas ----
+    function sendLog(event, detail, cam) {
+      fetch("/api/log", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event: event || "buka", detail: detail || "", cam: cam || liveCam })
+      })
+        .then(() => loadLog()).catch(() => { });
+    }
+    const LOG_LABEL = { live: "Live", replay: "Putar ulang", ptz: "PTZ", rtsp: "Salin RTSP", search: "Cari arsip", buka: "Buka", motion: "Gerak", tamper: "Tamper", snap: "Capture", rec: "Rekam" };
+    async function loadLog() {
+      const box = document.getElementById("logList");
+      try {
+        const r = await fetch("/api/log?limit=30").then(x => x.json());
+        document.getElementById("logCount").textContent = r.length ? `(${r.length})` : "";
+        if (!r.length) { box.innerHTML = '<p class="text-xs text-slate-400">belum ada aktivitas.</p>'; return; }
+        box.innerHTML = "";
+        for (const o of r) {
+          const w = o.ts ? new Date(o.ts * 1000).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
+          const lbl = LOG_LABEL[o.event] || o.event || "—";
+          const det = [o.cam, o.detail].filter(Boolean).join(" · ");
+          box.insertAdjacentHTML("beforeend",
+            `<div class="px-3 py-1.5 rounded-lg bg-slate-800/60 flex justify-between gap-2">
+       <span><b>${lbl}</b>${det ? ` <span class="text-slate-400">· ${det}</span>` : ""}</span>
        <span class="text-slate-500 shrink-0">${w}</span>
      </div>`);
-  }
- }catch(e){ box.innerHTML='<p class="text-xs text-slate-400">gagal memuat log.</p>'; }
-}
-// ---- PTZ (tahan untuk gerak, lepas untuk berhenti) ----
-async function ptzSend(cmd){
- const m=document.getElementById("ptzMsg");
- try{
-  const r=await fetch("/api/ptz",{method:"POST",headers:{"Content-Type":"application/json"},
-   body:JSON.stringify({cam:liveCam,cmd:cmd})}).then(x=>x.json());
-  if(!r.ok)throw new Error(r.err||"gagal");
-  m.textContent="";
-  if(cmd!=="stop")sendLog("ptz",cmd,liveCam);
- }catch(e){ m.textContent="✖ PTZ gagal ("+e.message+")"; }
-}
-function ptzStop(){ fetch("/api/ptz",{method:"POST",headers:{"Content-Type":"application/json"},
- body:JSON.stringify({cam:liveCam,cmd:"stop"})}).catch(()=>{}); }
-(function(){
- const pad=document.getElementById("ptzPad");
- document.getElementById("ptzCam").textContent=liveCam;
- document.querySelectorAll("[data-ptz]").forEach(b=>{
-  const cmd=b.dataset.ptz;
-  if(cmd==="home"||cmd==="stop"){
-   b.addEventListener("click",ev=>{ev.preventDefault();ptzSend(cmd);});
-   return;
-  }
-  // tekan-tahan: pointerdown = gerak, pointerup/leave/cancel = berhenti
-  b.addEventListener("pointerdown",ev=>{ev.preventDefault();b.setPointerCapture&&ev.pointerId!==undefined&&b.setPointerCapture(ev.pointerId);ptzSend(cmd);});
-  ["pointerup","pointercancel","pointerleave"].forEach(t=>b.addEventListener(t,ev=>{ev.preventDefault();ptzStop();}));
-  b.addEventListener("contextmenu",ev=>ev.preventDefault());
- });
-})();
-setInterval(async()=>{
- try{
-  const r=await fetch("/api/status").then(x=>x.json());
-  const a=r[liveCam];
-  const el=document.getElementById("liveStat");
-  if(a&&a.live)el.innerHTML='<span class="text-green-400">● live</span> · umur '+a.seg_old+' dtk';
-  else el.innerHTML='<span class="text-red-400">○ mati</span> (cek worker)';
-  if(r._disk)document.getElementById("diskStat").textContent="disk "+r._disk.pct+"%";
- }catch(e){}
-},3000);
+        }
+      } catch (e) { box.innerHTML = '<p class="text-xs text-slate-400">gagal memuat log.</p>'; }
+    }
+    // ---- PTZ (tahan untuk gerak, lepas untuk berhenti) ----
+    async function ptzSend(cmd) {
+      const m = document.getElementById("ptzMsg");
+      try {
+        const r = await fetch("/api/ptz", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cam: liveCam, cmd: cmd })
+        }).then(x => x.json());
+        if (!r.ok) throw new Error(r.err || "gagal");
+        m.textContent = "";
+        if (cmd !== "stop") sendLog("ptz", cmd, liveCam);
+      } catch (e) { m.textContent = "✖ PTZ gagal (" + e.message + ")"; }
+    }
+    function ptzStop() {
+      fetch("/api/ptz", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cam: liveCam, cmd: "stop" })
+      }).catch(() => { });
+    }
+    (function () {
+      const pad = document.getElementById("ptzPad");
+      document.getElementById("ptzCam").textContent = liveCam;
+      document.querySelectorAll("[data-ptz]").forEach(b => {
+        const cmd = b.dataset.ptz;
+        if (cmd === "home" || cmd === "stop") {
+          b.addEventListener("click", ev => { ev.preventDefault(); ptzSend(cmd); });
+          return;
+        }
+        // tekan-tahan: pointerdown = gerak, pointerup/leave/cancel = berhenti
+        b.addEventListener("pointerdown", ev => { ev.preventDefault(); b.setPointerCapture && ev.pointerId !== undefined && b.setPointerCapture(ev.pointerId); ptzSend(cmd); });
+        ["pointerup", "pointercancel", "pointerleave"].forEach(t => b.addEventListener(t, ev => { ev.preventDefault(); ptzStop(); }));
+        b.addEventListener("contextmenu", ev => ev.preventDefault());
+      });
+    })();
+    setInterval(async () => {
+      try {
+        const r = await fetch("/api/status").then(x => x.json());
+        const a = r[liveCam];
+        const el = document.getElementById("liveStat");
+        if (a && a.live) el.innerHTML = '<span class="text-green-400">● live</span> · umur ' + a.seg_old + ' dtk';
+        else el.innerHTML = '<span class="text-red-400">○ mati</span> (cek worker)';
+        if (r._disk) document.getElementById("diskStat").textContent = "disk " + r._disk.pct + "%";
+      } catch (e) { }
+    }, 3000);
 
-// ---- Metric server (tiap 5 menit, ringan) ----
-function fmtGB(b){ return (b/1073741824).toFixed(1).replace(".",",")+" GB"; }
-function fmtDur(s){ if(s==null)return "—";
- s=Math.floor(s); const h=Math.floor(s/3600),m=Math.floor(s%3600/60);
- return h>0?`${h} jam ${m} mnt`:(m>0?`${m} mnt`:`${s} dtk`); }
-async function loadMetrics(){
- const g=document.getElementById("metGrid");
- try{
-  const m=await fetch("/api/metrics").then(x=>{if(!x.ok)throw 0;return x.json();});
-  const tile=(l,v)=>`<div class="px-3 py-2 rounded-xl bg-slate-800/60"><div class="text-slate-400 text-[11px]">${l}</div><div class="font-semibold text-sm">${v}</div></div>`;
-  const cpu=m.load1!=null?`${m.load1.toFixed(2)} <span class="text-slate-400 font-normal">/ ${m.cpu_count} core</span>`:"—";
-  const mem=m.mem?`${m.mem.pct}% <span class="text-slate-400 font-normal">· ${fmtGB(m.mem.used)}/${fmtGB(m.mem.total)}</span>`:"—";
-  const dsk=m.disk?`${m.disk.pct}% <span class="text-slate-400 font-normal">· sisa ${fmtGB(m.disk.free)}</span>`:"—";
-  const tmp=m.temp_c!=null?m.temp_c.toFixed(1).replace(".",",")+" °C":"—";
-  const wk=Object.keys(m.workers||{}).map(c=>`${m.workers[c]?"●":"○"} ${c}`).join(" · ")||"—";
-  g.innerHTML=tile("Beban CPU (1 mnt)",cpu)+tile("Memori",mem)+tile("Disk",dsk)
-   +tile("Suhu CPU",tmp)+tile("Uptime server",fmtDur(m.uptime))+tile("Worker live",wk);
-  document.getElementById("metUpd").textContent="· "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
- }catch(e){ g.innerHTML='<p class="text-xs text-slate-400">gagal memuat metrik.</p>'; }
-}
-// ---- Notifikasi sensor gerak (poll ringan tiap 15 detik) ----
-let motionSeen=0;
-function motionTime(ts){ return new Date(ts*1000).toLocaleString("id-ID",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit"}); }
-function motionRead(){ motionSeen=Math.floor(Date.now()/1000);
- document.getElementById("motionCount").textContent=""; }
-async function loadMotion(){
- try{
-  const r=await fetch("/api/motion?limit=8").then(x=>x.json());
-  const box=document.getElementById("motionList");
-  const stat=document.getElementById("motionStat");
-  const acts=Object.keys(r.active||{}).filter(c=>r.active[c].active);
-  const mb=document.getElementById("motionBadge");
-  if(acts.length){ mb.classList.remove("hidden");
-   document.getElementById("motionBadgeCam").textContent=acts.join(", "); }
-  else mb.classList.add("hidden");
-  stat.textContent=r.monitor==="ok"?"memantau · poll "+(r.last_poll?motionTime(r.last_poll):"—"):"⚠ monitor: "+r.monitor;
-  const evs=r.events||[];
-  if(!evs.length){box.innerHTML='<p class="text-xs text-slate-400">belum ada gerakan tercatat.</p>';}
-  else{ box.innerHTML="";
-   for(const o of evs){
-    const baru=o.ts>motionSeen;
-    box.insertAdjacentHTML("beforeend",
-     `<div class="px-3 py-1.5 rounded-lg ${baru?"bg-amber-500/15 ring-1 ring-amber-500/40":"bg-slate-800/60"} flex justify-between gap-2">
-        <span><b>${o.kind==="tamper"?"⛔ Tamper":"⚠ Gerak"}</b> <span class="text-slate-400">· ${o.cam}</span></span>
+    // ---- Metric server (tiap 5 menit, ringan) ----
+    function fmtGB(b) { return (b / 1073741824).toFixed(1).replace(".", ",") + " GB"; }
+    function fmtDur(s) {
+      if (s == null) return "—";
+      s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60);
+      return h > 0 ? `${h} jam ${m} mnt` : (m > 0 ? `${m} mnt` : `${s} dtk`);
+    }
+    async function loadMetrics() {
+      const g = document.getElementById("metGrid");
+      try {
+        const m = await fetch("/api/metrics").then(x => { if (!x.ok) throw 0; return x.json(); });
+        const tile = (l, v) => `<div class="px-3 py-2 rounded-xl bg-slate-800/60"><div class="text-slate-400 text-[11px]">${l}</div><div class="font-semibold text-sm">${v}</div></div>`;
+        const cpu = m.load1 != null ? `${m.load1.toFixed(2)} <span class="text-slate-400 font-normal">/ ${m.cpu_count} core</span>` : "—";
+        const mem = m.mem ? `${m.mem.pct}% <span class="text-slate-400 font-normal">· ${fmtGB(m.mem.used)}/${fmtGB(m.mem.total)}</span>` : "—";
+        const dsk = m.disk ? `${m.disk.pct}% <span class="text-slate-400 font-normal">· sisa ${fmtGB(m.disk.free)}</span>` : "—";
+        const tmp = m.temp_c != null ? m.temp_c.toFixed(1).replace(".", ",") + " °C" : "—";
+        const wk = Object.keys(m.workers || {}).map(c => `${m.workers[c] ? "●" : "○"} ${c}`).join(" · ") || "—";
+        g.innerHTML = tile("Beban CPU (1 mnt)", cpu) + tile("Memori", mem) + tile("Disk", dsk)
+          + tile("Suhu CPU", tmp) + tile("Uptime server", fmtDur(m.uptime)) + tile("Worker live", wk);
+        document.getElementById("metUpd").textContent = "· " + new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+      } catch (e) { g.innerHTML = '<p class="text-xs text-slate-400">gagal memuat metrik.</p>'; }
+    }
+    // ---- Notifikasi sensor gerak (poll ringan tiap 15 detik) ----
+    let motionSeen = 0;
+    function motionTime(ts) { return new Date(ts * 1000).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
+    function motionRead() {
+      motionSeen = Math.floor(Date.now() / 1000);
+      document.getElementById("motionCount").textContent = "";
+    }
+    async function loadMotion() {
+      try {
+        const r = await fetch("/api/motion?limit=8").then(x => x.json());
+        const box = document.getElementById("motionList");
+        const stat = document.getElementById("motionStat");
+        const acts = Object.keys(r.active || {}).filter(c => r.active[c].active);
+        const mb = document.getElementById("motionBadge");
+        if (acts.length) {
+          mb.classList.remove("hidden");
+          document.getElementById("motionBadgeCam").textContent = acts.join(", ");
+        }
+        else mb.classList.add("hidden");
+        stat.textContent = r.monitor === "ok" ? "memantau · poll " + (r.last_poll ? motionTime(r.last_poll) : "—") : "⚠ monitor: " + r.monitor;
+        const evs = r.events || [];
+        if (!evs.length) { box.innerHTML = '<p class="text-xs text-slate-400">belum ada gerakan tercatat.</p>'; }
+        else {
+          box.innerHTML = "";
+          for (const o of evs) {
+            const baru = o.ts > motionSeen;
+            box.insertAdjacentHTML("beforeend",
+              `<div class="px-3 py-1.5 rounded-lg ${baru ? "bg-amber-500/15 ring-1 ring-amber-500/40" : "bg-slate-800/60"} flex justify-between gap-2">
+        <span><b>${o.kind === "tamper" ? "⛔ Tamper" : "⚠ Gerak"}</b> <span class="text-slate-400">· ${o.cam}</span></span>
         <span class="text-slate-500 shrink-0">${motionTime(o.ts)}</span>
       </div>`);
-   }
-  }
-  const n=evs.filter(o=>o.ts>motionSeen).length;
-  document.getElementById("motionCount").textContent=n?`(${n} baru)`:"";
- }catch(e){}
-}
+          }
+        }
+        const n = evs.filter(o => o.ts > motionSeen).length;
+        document.getElementById("motionCount").textContent = n ? `(${n} baru)` : "";
+      } catch (e) { }
+    }
 
-initColl();
-document.getElementById("liveTitle").textContent="Live · "+liveCam;
-tickClock(); setInterval(tickClock,10000);
-loadArch(); loadLog(); setInterval(loadLog,30000);
-function openMetric(){ document.getElementById("metricModal").style.display="flex"; loadMetrics(); }
-function closeMetric(){ document.getElementById("metricModal").style.display="none"; }
-document.addEventListener("keydown",ev=>{ if(ev.key==="Escape")closeMetric(); });
-loadMetrics(); setInterval(loadMetrics,300000);
-loadMotion().then(()=>{motionSeen=Math.floor(Date.now()/1000);}); setInterval(loadMotion,15000);
-syncRecord(); loadManual();
-playLive(); sendLog("buka","dashboard");
-</script>
+    initColl();
+    document.getElementById("liveTitle").textContent = "Live · " + liveCam;
+    tickClock(); setInterval(tickClock, 10000);
+    loadArch(); loadLog(); setInterval(loadLog, 30000);
+    function openMetric() { document.getElementById("metricModal").style.display = "flex"; loadMetrics(); }
+    function closeMetric() { document.getElementById("metricModal").style.display = "none"; }
+    document.addEventListener("keydown", ev => { if (ev.key === "Escape") closeMetric(); });
+    loadMetrics(); setInterval(loadMetrics, 300000);
+    loadMotion().then(() => { motionSeen = Math.floor(Date.now() / 1000); }); setInterval(loadMotion, 15000);
+    syncRecord(); loadManual();
+    playLive(); sendLog("buka", "dashboard");
+  </script>
 </body>
+
 </html>

@@ -24,21 +24,22 @@ Tidak ada dep eksternal. Jalankan:  python3 app.py --port 8080
 Kredensial hanya dibaca dari .env (mode 600) di sisi server; TIDAK ditulis
 ke HTML/JS sehingga tidak bocor ke browser.
 """
+
 import argparse, base64, json, os, re, subprocess, threading, time
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from functools import partial
 
-ROOT   = os.path.dirname(os.path.abspath(__file__))
-CFG    = os.path.join(ROOT, "config.json")
-ENVF   = os.path.join(ROOT, ".env")
-LIVE   = os.path.join(ROOT, "recordings", "live")
-ARCH   = os.path.join(ROOT, "recordings", "archive")
-LOGF   = os.path.join(ROOT, "nas", "logs", "activity.log")
-MOTF   = os.path.join(ROOT, "nas", "logs", "motion.log")
-MANDIR = os.path.join(ROOT, "recordings", "manual")   # klip rekaman manual
-SNAPDIR = os.path.join(ROOT, "recordings", "snaps")   # JPG snapshot
+ROOT = os.path.dirname(os.path.abspath(__file__))
+CFG = os.path.join(ROOT, "config.json")
+ENVF = os.path.join(ROOT, ".env")
+LIVE = os.path.join(ROOT, "recordings", "live")
+ARCH = os.path.join(ROOT, "recordings", "archive")
+LOGF = os.path.join(ROOT, "nas", "logs", "activity.log")
+MOTF = os.path.join(ROOT, "nas", "logs", "motion.log")
+MANDIR = os.path.join(ROOT, "recordings", "manual")  # klip rekaman manual
+SNAPDIR = os.path.join(ROOT, "recordings", "snaps")  # JPG snapshot
 START_TS = time.time()  # waktu start dashboard (untuk metrik uptime)
 
 # status rekaman manual: {cam: {"proc": Popen, "file": nama, "started": ts}}
@@ -46,8 +47,13 @@ RECORDINGS = {}
 RECORDINGS_LOCK = threading.Lock()
 
 # status monitor gerak (diisi thread latar; dibaca /api/motion)
-MOTION = {"ok": False, "err": "belum jalan", "last_poll": None,
-          "active": {}, "lock": threading.Lock()}
+MOTION = {
+    "ok": False,
+    "err": "belum jalan",
+    "last_poll": None,
+    "active": {},
+    "lock": threading.Lock(),
+}
 
 
 def _read_first(path):
@@ -63,7 +69,11 @@ def server_metrics():
     m = {"cpu_count": os.cpu_count() or 0, "app_uptime": round(time.time() - START_TS)}
     try:
         parts = _read_first("/proc/loadavg").split()
-        m["load1"], m["load5"], m["load15"] = float(parts[0]), float(parts[1]), float(parts[2])
+        m["load1"], m["load5"], m["load15"] = (
+            float(parts[0]),
+            float(parts[1]),
+            float(parts[2]),
+        )
     except (IndexError, ValueError):
         m["load1"] = m["load5"] = m["load15"] = None
     try:
@@ -80,8 +90,11 @@ def server_metrics():
     if "MemTotal" in mem:
         avail = mem.get("MemAvailable", mem.get("MemFree", 0))
         used = mem["MemTotal"] - avail
-        m["mem"] = {"total": mem["MemTotal"], "used": used,
-                    "pct": round(100 * used / mem["MemTotal"], 1)}
+        m["mem"] = {
+            "total": mem["MemTotal"],
+            "used": used,
+            "pct": round(100 * used / mem["MemTotal"], 1),
+        }
     else:
         m["mem"] = None
     try:
@@ -153,8 +166,13 @@ def write_log(event, detail="", cam="", ip=""):
     """Catat aktivitas ke nas/logs/activity.log (JSON lines, max ~2000 baris)."""
     try:
         os.makedirs(os.path.dirname(LOGF), exist_ok=True)
-        row = {"ts": round(time.time()), "ip": ip, "event": event,
-               "cam": cam, "detail": detail}
+        row = {
+            "ts": round(time.time()),
+            "ip": ip,
+            "event": event,
+            "cam": cam,
+            "detail": detail,
+        }
         with open(LOGF, "a", encoding="utf-8") as f:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
         # potong bila terlalu besar (>500KB): simpan 2000 baris terakhir
@@ -229,7 +247,9 @@ def manual_index(limit=50):
             for f in sorted(os.listdir(d), reverse=True):
                 if f.endswith(".mp4") and not f.startswith(".") and "/" not in f:
                     try:
-                        clips.append({"f": f, "size": os.path.getsize(os.path.join(d, f))})
+                        clips.append(
+                            {"f": f, "size": os.path.getsize(os.path.join(d, f))}
+                        )
                     except OSError:
                         pass
                 if len(clips) >= limit:
@@ -239,7 +259,9 @@ def manual_index(limit=50):
             for f in sorted(os.listdir(d), reverse=True):
                 if f.endswith(".jpg") and not f.startswith(".") and "/" not in f:
                     try:
-                        snaps.append({"f": f, "size": os.path.getsize(os.path.join(d, f))})
+                        snaps.append(
+                            {"f": f, "size": os.path.getsize(os.path.join(d, f))}
+                        )
                     except OSError:
                         pass
                 if len(snaps) >= limit:
@@ -258,10 +280,26 @@ def take_snapshot(cam):
     fn = _safe_media_name("snap", "jpg")
     p = os.path.join(d, fn)
     r = subprocess.run(
-        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-nostdin", "-y",
-         "-rtsp_transport", "tcp", "-i", url,
-         "-frames:v", "1", "-q:v", "3", p],
-        timeout=25, capture_output=True)
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-nostdin",
+            "-y",
+            "-rtsp_transport",
+            "tcp",
+            "-i",
+            url,
+            "-frames:v",
+            "1",
+            "-q:v",
+            "3",
+            p,
+        ],
+        timeout=25,
+        capture_output=True,
+    )
     if r.returncode != 0 or not os.path.isfile(p) or os.path.getsize(p) == 0:
         try:
             os.remove(p)
@@ -278,8 +316,11 @@ def record_status():
         for cam in CAMS:
             s = RECORDINGS.get(cam)
             if s and s["proc"].poll() is None:
-                out[cam] = {"recording": True, "file": s["file"],
-                            "elapsed": round(now - s["started"])}
+                out[cam] = {
+                    "recording": True,
+                    "file": s["file"],
+                    "elapsed": round(now - s["started"]),
+                }
             else:
                 out[cam] = {"recording": False}
     return out
@@ -299,11 +340,34 @@ def record_start(cam):
         p = os.path.join(d, fn)
         log = open("/tmp/rec_%s.log" % cam, "ab")
         proc = subprocess.Popen(
-            ["ffmpeg", "-hide_banner", "-loglevel", "warning", "-nostdin",
-             "-rtsp_transport", "tcp", "-i", CAMS[cam],
-             "-c:v", "copy", "-c:a", "aac", "-b:a", "64k", "-ac", "1",
-             "-f", "mp4", "-movflags", "+faststart", p],
-            stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT)
+            [
+                "ffmpeg",
+                "-hide_banner",
+                "-loglevel",
+                "warning",
+                "-nostdin",
+                "-rtsp_transport",
+                "tcp",
+                "-i",
+                CAMS[cam],
+                "-c:v",
+                "copy",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "64k",
+                "-ac",
+                "1",
+                "-f",
+                "mp4",
+                "-movflags",
+                "+faststart",
+                p,
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+        )
         RECORDINGS[cam] = {"proc": proc, "file": fn, "started": time.time()}
         return fn
 
@@ -359,17 +423,22 @@ def cleanup_stray_manual():
 def _motion_parse(xml):
     """Ekstrak (topic, source, state, propop) dari respons PullMessages."""
     evs = []
-    for blk in re.findall(r"<(?:\w+:)?NotificationMessage>(.*?)</(?:\w+:)?NotificationMessage>",
-                          xml, re.S):
+    for blk in re.findall(
+        r"<(?:\w+:)?NotificationMessage>(.*?)</(?:\w+:)?NotificationMessage>", xml, re.S
+    ):
         mt = re.search(r"<(?:\w+:)?Topic[^>]*>(.*?)</(?:\w+:)?Topic>", blk, re.S)
         ms = re.search(r'Name="Source" Value="([^"]+)"', blk)
         md = re.search(r'Name="State" Value="([^"]+)"', blk)
         mp = re.search(r'PropertyOperation="([^"]+)"', blk)
         if mt and md:
-            evs.append({"topic": re.sub(r"\s+", "", mt.group(1)),
-                        "source": ms.group(1) if ms else "",
-                        "state": md.group(1).lower() == "true",
-                        "prop": mp.group(1) if mp else ""})
+            evs.append(
+                {
+                    "topic": re.sub(r"\s+", "", mt.group(1)),
+                    "source": ms.group(1) if ms else "",
+                    "state": md.group(1).lower() == "true",
+                    "prop": mp.group(1) if mp else "",
+                }
+            )
     return evs
 
 
@@ -381,12 +450,15 @@ def motion_loop():
             host, port, user, pwd = _onvif_auth()
             base = "http://%s:%d" % (host, port)
             # 1) buat subscription pull-point (5 menit)
-            sub = onvif_soap("event_service",
+            sub = onvif_soap(
+                "event_service",
                 '<?xml version="1.0" encoding="UTF-8"?>'
                 '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body>'
                 '<CreatePullPointSubscription xmlns="http://www.onvif.org/ver10/events/wsdl">'
                 "<InitialTerminationTime>PT5M</InitialTerminationTime>"
-                "</CreatePullPointSubscription></s:Body></s:Envelope>", timeout=10)
+                "</CreatePullPointSubscription></s:Body></s:Envelope>",
+                timeout=10,
+            )
             mm = re.search(r"<(?:\w+:)?Address>(http[^<]+)</(?:\w+:)?Address>", sub)
             pull_url = mm.group(1).strip() if mm else base + "/onvif/event_service"
             with MOTION["lock"]:
@@ -396,13 +468,16 @@ def motion_loop():
             t_end = time.time() + 240  # perbarui subscription tiap 4 mnt
             while time.time() < t_end:
                 try:
-                    xml = onvif_soap("event_service",
+                    xml = onvif_soap(
+                        "event_service",
                         '<?xml version="1.0" encoding="UTF-8"?>'
                         '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body>'
                         '<PullMessages xmlns="http://www.onvif.org/ver10/events/wsdl">'
                         "<Timeout>PT15S</Timeout><MessageLimit>50</MessageLimit>"
                         "</PullMessages></s:Body></s:Envelope>",
-                        timeout=30, url_override=pull_url)
+                        timeout=30,
+                        url_override=pull_url,
+                    )
                 except Exception:
                     break  # subscription basi -> buat baru
                 with MOTION["lock"]:
@@ -418,11 +493,17 @@ def motion_loop():
                     with MOTION["lock"]:
                         st = MOTION["active"].get(cam0, {})
                         if ev["state"]:
-                            MOTION["active"][cam0] = {"active": True,
-                                                     "ts": round(time.time()), "kind": kind}
+                            MOTION["active"][cam0] = {
+                                "active": True,
+                                "ts": round(time.time()),
+                                "kind": kind,
+                            }
                         elif st.get("kind") == kind:
-                            MOTION["active"][cam0] = {"active": False,
-                                                     "ts": round(time.time()), "kind": kind}
+                            MOTION["active"][cam0] = {
+                                "active": False,
+                                "ts": round(time.time()),
+                                "kind": kind,
+                            }
                     # notifikasi hanya saat transisi ke true (atau heartbeat >60 dtk)
                     if ev["state"] and ev["prop"] != "Initialized":
                         now = time.time()
@@ -455,6 +536,8 @@ def load_cams():
     if show:
         cams = {n: cams[n] for n in show if n in cams}
     return env, cams
+
+
 ENV, CAMS = load_cams()
 
 
@@ -490,7 +573,9 @@ def cam_meta(nama):
         st = os.stat(m3)
     except OSError:
         return info
-    info["seg_old"] = round(time.time() - st.st_mtime, 1) if time.time() > st.st_mtime else 0
+    info["seg_old"] = (
+        round(time.time() - st.st_mtime, 1) if time.time() > st.st_mtime else 0
+    )
     info["live"] = info["seg_old"] < 20
     try:
         txt = open(m3, encoding="utf-8", errors="ignore").read()
@@ -509,8 +594,11 @@ def disk_usage(path):
     st = os.statvfs(path)
     total = st.f_blocks * st.f_frsize
     free = st.f_bavail * st.f_frsize
-    return {"free": free, "total": total,
-            "pct": round(100 * (total - free) / total, 1) if total else 0}
+    return {
+        "free": free,
+        "total": total,
+        "pct": round(100 * (total - free) / total, 1) if total else 0,
+    }
 
 
 def archive_index(date=None, cam=None, hour=None, q=None, limit=40):
@@ -540,8 +628,13 @@ def archive_index(date=None, cam=None, hour=None, q=None, limit=40):
                 continue
             p = os.path.join(d, f)
             try:
-                files.append({"f": f, "size": os.path.getsize(p),
-                              "mtime": round(os.path.getmtime(p))})
+                files.append(
+                    {
+                        "f": f,
+                        "size": os.path.getsize(p),
+                        "mtime": round(os.path.getmtime(p)),
+                    }
+                )
             except OSError:
                 pass
         files.sort(key=lambda x: x["f"])
@@ -552,15 +645,15 @@ def archive_index(date=None, cam=None, hour=None, q=None, limit=40):
 
 # ============================ HTML ============================
 def html_dash():
-    tmpl = open(os.path.join(ROOT, "templates", "dashboard.html"), encoding="utf-8").read()
+    tmpl = open(
+        os.path.join(ROOT, "templates", "dashboard.html"), encoding="utf-8"
+    ).read()
     # substitusi token "__CAMS__" (JANGAN %-format: CSS/JS berisi '%' literal)
     cams_js = ",".join(json.dumps(n) for n in CAMS)
     return tmpl.replace('"__CAMS__"', cams_js)
 
 
-_HLSJS = (
-    "https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"
-)
+_HLSJS = "https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"
 
 
 def build_url(cam_nama, stream):
@@ -601,8 +694,10 @@ def onvif_soap(service, body_xml, timeout=6, url_override=None):
     host, port, user, pwd = _onvif_auth()
     url = url_override or "http://%s:%d/onvif/%s" % (host, port, service)
     req = urllib.request.Request(
-        url, data=body_xml.encode("utf-8"),
-        headers={"Content-Type": "application/soap+xml; charset=utf-8"})
+        url,
+        data=body_xml.encode("utf-8"),
+        headers={"Content-Type": "application/soap+xml; charset=utf-8"},
+    )
     cred = ("%s:%s" % (user, pwd)).encode("utf-8")
     req.add_header("Authorization", "Basic " + base64.b64encode(cred).decode())
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -641,28 +736,32 @@ def ptz_do(cmd, x=0.0, y=0.0, z=0.0, profile="000", vsrc="V_SRC_000"):
         ) % profile
         onvif_soap("ptz_service", body)
         try:  # hentikan juga motor fokus bila sedang jalan
-            onvif_soap("image_service",
+            onvif_soap(
+                "image_service",
                 '<?xml version="1.0" encoding="UTF-8"?>'
                 '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body>'
                 '<Stop xmlns="http://www.onvif.org/ver20/imaging/wsdl">'
                 "<VideoSourceToken>%s</VideoSourceToken>"
-                "</Stop></s:Body></s:Envelope>" % vsrc)
+                "</Stop></s:Body></s:Envelope>" % vsrc,
+            )
         except Exception:
             pass
     elif cmd == "home":
-        onvif_soap("ptz_service",
+        onvif_soap(
+            "ptz_service",
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body>'
             '<GotoHomePosition xmlns="http://www.onvif.org/ver20/ptz/wsdl">'
             "<ProfileToken>%s</ProfileToken>"
-            "</GotoHomePosition></s:Body></s:Envelope>" % profile)
+            "</GotoHomePosition></s:Body></s:Envelope>" % profile,
+        )
     elif cmd == "focus":
         # Imaging Move — Continuous focus (x: -1 jauh .. +1 dekat)
         body = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body>'
             '<Move xmlns="http://www.onvif.org/ver20/imaging/wsdl">'
-            "<VideoSourceToken>%s</VideoSourceToken><Focus><Continuous x=\"%s\"/>"
+            '<VideoSourceToken>%s</VideoSourceToken><Focus><Continuous x="%s"/>'
             "</Focus></Move></s:Body></s:Envelope>"
         ) % (vsrc, x)
         onvif_soap("image_service", body)
@@ -671,8 +770,12 @@ def ptz_do(cmd, x=0.0, y=0.0, z=0.0, profile="000", vsrc="V_SRC_000"):
     return True
 
 
-MIME = {".m3u8": "application/vnd.apple.mpegurl", ".m4s": "video/mp4",
-        ".mp4": "video/mp4", ".ts": "video/MP2T"}
+MIME = {
+    ".m3u8": "application/vnd.apple.mpegurl",
+    ".m4s": "video/mp4",
+    ".mp4": "video/mp4",
+    ".ts": "video/MP2T",
+}
 
 
 class H(BaseHTTPRequestHandler):
@@ -741,16 +844,26 @@ class H(BaseHTTPRequestHandler):
         cmd = (params.get("cmd") or "").strip().lower()
         # alias dari UI: arah mata angin / zoom / fokus
         aliases = {
-            "up": ("move", 0, 0.6, 0), "down": ("move", 0, -0.6, 0),
-            "left": ("move", -0.6, 0, 0), "right": ("move", 0.6, 0, 0),
-            "up-left": ("move", -0.5, 0.5, 0), "upleft": ("move", -0.5, 0.5, 0),
-            "up-right": ("move", 0.5, 0.5, 0), "upright": ("move", 0.5, 0.5, 0),
-            "down-left": ("move", -0.5, -0.5, 0), "downleft": ("move", -0.5, -0.5, 0),
-            "down-right": ("move", 0.5, -0.5, 0), "downright": ("move", 0.5, -0.5, 0),
-            "zoom-in": ("move", 0, 0, 0.6), "zoomin": ("move", 0, 0, 0.6),
-            "zoom-out": ("move", 0, 0, -0.6), "zoomout": ("move", 0, 0, -0.6),
-            "focus-in": ("focus", 0.6, 0, 0), "focusin": ("focus", 0.6, 0, 0),
-            "focus-out": ("focus", -0.6, 0, 0), "focusout": ("focus", -0.6, 0, 0),
+            "up": ("move", 0, 0.6, 0),
+            "down": ("move", 0, -0.6, 0),
+            "left": ("move", -0.6, 0, 0),
+            "right": ("move", 0.6, 0, 0),
+            "up-left": ("move", -0.5, 0.5, 0),
+            "upleft": ("move", -0.5, 0.5, 0),
+            "up-right": ("move", 0.5, 0.5, 0),
+            "upright": ("move", 0.5, 0.5, 0),
+            "down-left": ("move", -0.5, -0.5, 0),
+            "downleft": ("move", -0.5, -0.5, 0),
+            "down-right": ("move", 0.5, -0.5, 0),
+            "downright": ("move", 0.5, -0.5, 0),
+            "zoom-in": ("move", 0, 0, 0.6),
+            "zoomin": ("move", 0, 0, 0.6),
+            "zoom-out": ("move", 0, 0, -0.6),
+            "zoomout": ("move", 0, 0, -0.6),
+            "focus-in": ("focus", 0.6, 0, 0),
+            "focusin": ("focus", 0.6, 0, 0),
+            "focus-out": ("focus", -0.6, 0, 0),
+            "focusout": ("focus", -0.6, 0, 0),
         }
         if cmd in aliases:
             acmd, ax, ay, az = aliases[cmd]
@@ -763,14 +876,21 @@ class H(BaseHTTPRequestHandler):
                 pass
             cmd, params = acmd, dict(params, x=ax, y=ay, z=az)
         if cmd not in ("move", "stop", "home", "focus"):
-            return 400, {"ok": False, "err": "cmd harus move|stop|home|focus (+ arah/zoom)"}
+            return 400, {
+                "ok": False,
+                "err": "cmd harus move|stop|home|focus (+ arah/zoom)",
+            }
         try:
             if cmd == "focus":
                 fx = params.get("x", params.get("speed", 0.5))
                 ptz_do("focus", x=float(fx))
             elif cmd == "move":
-                ptz_do("move", x=float(params.get("x", 0)),
-                       y=float(params.get("y", 0)), z=float(params.get("z", 0)))
+                ptz_do(
+                    "move",
+                    x=float(params.get("x", 0)),
+                    y=float(params.get("y", 0)),
+                    z=float(params.get("z", 0)),
+                )
             else:
                 ptz_do(cmd)
         except ValueError as e:
@@ -795,13 +915,21 @@ class H(BaseHTTPRequestHandler):
             elif u.path == "/api/archive":
                 date = (q.get("date", [""])[0] or "").strip()
                 if date and not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
-                    self._send(400, json.dumps({"ok": False, "err": "format tanggal YYYY-MM-DD"}),
-                               "application/json", True)
+                    self._send(
+                        400,
+                        json.dumps({"ok": False, "err": "format tanggal YYYY-MM-DD"}),
+                        "application/json",
+                        True,
+                    )
                     return
                 hour = (q.get("hour", [""])[0] or "").strip()
                 if hour and not re.match(r"^([01]\d|2[0-3])$", hour):
-                    self._send(400, json.dumps({"ok": False, "err": "format jam HH (00-23)"}),
-                               "application/json", True)
+                    self._send(
+                        400,
+                        json.dumps({"ok": False, "err": "format jam HH (00-23)"}),
+                        "application/json",
+                        True,
+                    )
                     return
                 camf = (q.get("cam", [""])[0] or "").strip() or None
                 qq = (q.get("q", [""])[0] or "").strip() or None
@@ -811,27 +939,47 @@ class H(BaseHTTPRequestHandler):
                     lim = 40
                 if date or hour or qq:
                     lim = lim if 1 <= lim <= 1000 else 500
-                self._send(200, json.dumps(archive_index(
-                    date=date or None, cam=camf, hour=hour or None,
-                    q=qq, limit=lim)), "application/json", True)
+                self._send(
+                    200,
+                    json.dumps(
+                        archive_index(
+                            date=date or None,
+                            cam=camf,
+                            hour=hour or None,
+                            q=qq,
+                            limit=lim,
+                        )
+                    ),
+                    "application/json",
+                    True,
+                )
             elif u.path == "/api/log":
                 try:
                     lim = int(q.get("limit", ["50"])[0])
                 except ValueError:
                     lim = 50
-                self._send(200, json.dumps(read_log(max(1, min(lim, 200)))),
-                           "application/json", True)
+                self._send(
+                    200,
+                    json.dumps(read_log(max(1, min(lim, 200)))),
+                    "application/json",
+                    True,
+                )
             elif u.path == "/api/manual":
                 self._send(200, json.dumps(manual_index()), "application/json", True)
             elif u.path == "/api/record":
                 self._send(200, json.dumps(record_status()), "application/json", True)
             elif u.path == "/api/metrics":
                 try:
-                    self._send(200, json.dumps(server_metrics()),
-                               "application/json", True)
+                    self._send(
+                        200, json.dumps(server_metrics()), "application/json", True
+                    )
                 except Exception as e:
-                    self._send(500, json.dumps({"ok": False, "err": str(e)[:120]}),
-                               "application/json", True)
+                    self._send(
+                        500,
+                        json.dumps({"ok": False, "err": str(e)[:120]}),
+                        "application/json",
+                        True,
+                    )
             elif u.path == "/api/motion":
                 try:
                     lim = int(q.get("limit", ["20"])[0])
@@ -845,11 +993,21 @@ class H(BaseHTTPRequestHandler):
                 if since:
                     evs = [e for e in evs if e.get("ts", 0) > since]
                 with MOTION["lock"]:
-                    self._send(200, json.dumps({
-                        "monitor": "ok" if MOTION["ok"] else "error: " + MOTION["err"],
-                        "last_poll": MOTION["last_poll"],
-                        "active": MOTION["active"], "events": evs}),
-                        "application/json", True)
+                    self._send(
+                        200,
+                        json.dumps(
+                            {
+                                "monitor": (
+                                    "ok" if MOTION["ok"] else "error: " + MOTION["err"]
+                                ),
+                                "last_poll": MOTION["last_poll"],
+                                "active": MOTION["active"],
+                                "events": evs,
+                            }
+                        ),
+                        "application/json",
+                        True,
+                    )
             elif u.path == "/api/rtsp":
                 cam = q.get("cam", [""])[0]
                 try:
@@ -865,7 +1023,7 @@ class H(BaseHTTPRequestHandler):
                 flat = {k: (v[0] if isinstance(v, list) else v) for k, v in q.items()}
                 code, obj = self._handle_ptz(flat)
                 if code == 200 and obj.get("cmd") not in ("stop",):
-                    ip = (self.client_address[0] if self.client_address else "")
+                    ip = self.client_address[0] if self.client_address else ""
                     write_log("ptz", obj.get("cmd", ""), obj.get("cam", ""), ip)
                 self._send(code, json.dumps(obj), "application/json", True)
             elif u.path == "/dvr":
@@ -880,7 +1038,7 @@ class H(BaseHTTPRequestHandler):
                 with open(p, "rb") as f:
                     self._send(200, f.read(), "application/javascript")
             elif u.path.startswith("/dl/"):
-                parts = u.path[len("/dl/"):].split("/", 1)
+                parts = u.path[len("/dl/") :].split("/", 1)
                 if len(parts) != 2 or parts[0] not in CAMS:
                     self._send(404, "tidak ada")
                     return
@@ -889,12 +1047,14 @@ class H(BaseHTTPRequestHandler):
                     self._send(403, "ditolak")
                     return
                 p = os.path.realpath(os.path.join(ARCH, cam, fn))
-                if not p.startswith(os.path.realpath(ARCH) + os.sep) or not os.path.isfile(p):
+                if not p.startswith(
+                    os.path.realpath(ARCH) + os.sep
+                ) or not os.path.isfile(p):
                     self._send(404, "tidak ada")
                     return
                 self._serve_file(p, "video/mp4")
             elif u.path.startswith("/manual/"):
-                parts = u.path[len("/manual/"):].split("/", 1)
+                parts = u.path[len("/manual/") :].split("/", 1)
                 if len(parts) != 2 or parts[0] not in CAMS:
                     self._send(404, "tidak ada")
                     return
@@ -903,12 +1063,14 @@ class H(BaseHTTPRequestHandler):
                     self._send(403, "ditolak")
                     return
                 p = os.path.realpath(os.path.join(MANDIR, cam, fn))
-                if not p.startswith(os.path.realpath(MANDIR) + os.sep) or not os.path.isfile(p):
+                if not p.startswith(
+                    os.path.realpath(MANDIR) + os.sep
+                ) or not os.path.isfile(p):
                     self._send(404, "tidak ada")
                     return
                 self._serve_file(p, "video/mp4")
             elif u.path.startswith("/snaps/"):
-                parts = u.path[len("/snaps/"):].split("/", 1)
+                parts = u.path[len("/snaps/") :].split("/", 1)
                 if len(parts) != 2 or parts[0] not in CAMS:
                     self._send(404, "tidak ada")
                     return
@@ -917,12 +1079,14 @@ class H(BaseHTTPRequestHandler):
                     self._send(403, "ditolak")
                     return
                 p = os.path.realpath(os.path.join(SNAPDIR, cam, fn))
-                if not p.startswith(os.path.realpath(SNAPDIR) + os.sep) or not os.path.isfile(p):
+                if not p.startswith(
+                    os.path.realpath(SNAPDIR) + os.sep
+                ) or not os.path.isfile(p):
                     self._send(404, "tidak ada")
                     return
                 self._serve_file(p, "image/jpeg")
             elif u.path.startswith("/hls/"):
-                parts = u.path[len("/hls/"):].split("/", 1)
+                parts = u.path[len("/hls/") :].split("/", 1)
                 if len(parts) != 2 or parts[0] not in CAMS:
                     self._send(404, "tidak ada")
                     return
@@ -937,8 +1101,12 @@ class H(BaseHTTPRequestHandler):
                 ext = os.path.splitext(fn)[1].lower()
                 with open(p, "rb") as f:
                     data = f.read()
-                self._send(200, data, MIME.get(ext, "application/octet-stream"),
-                           nocache=(ext == ".m3u8"))
+                self._send(
+                    200,
+                    data,
+                    MIME.get(ext, "application/octet-stream"),
+                    nocache=(ext == ".m3u8"),
+                )
             else:
                 self._send(404, "tidak ada")
         except (BrokenPipeError, ConnectionResetError):
@@ -959,16 +1127,31 @@ class H(BaseHTTPRequestHandler):
             if not isinstance(params, dict):
                 params = {}
             params = {str(k): str(v) for k, v in params.items()}
-            ip = (self.client_address[0] if self.client_address else "")
+            ip = self.client_address[0] if self.client_address else ""
             if u.path == "/api/log":
                 ev = (params.get("event") or "")[:32]
-                if ev not in ("live", "replay", "ptz", "rtsp", "search", "buka",
-                              "motion", "tamper", "snap", "rec"):
-                    self._send(400, json.dumps({"ok": False, "err": "event tidak dikenal"}),
-                               "application/json", True)
+                if ev not in (
+                    "live",
+                    "replay",
+                    "ptz",
+                    "rtsp",
+                    "search",
+                    "buka",
+                    "motion",
+                    "tamper",
+                    "snap",
+                    "rec",
+                ):
+                    self._send(
+                        400,
+                        json.dumps({"ok": False, "err": "event tidak dikenal"}),
+                        "application/json",
+                        True,
+                    )
                     return
-                write_log(ev, params.get("detail", "")[:200],
-                          params.get("cam", "")[:32], ip)
+                write_log(
+                    ev, params.get("detail", "")[:200], params.get("cam", "")[:32], ip
+                )
                 self._send(200, json.dumps({"ok": True}), "application/json", True)
                 return
             if u.path == "/api/snapshot":
@@ -976,17 +1159,36 @@ class H(BaseHTTPRequestHandler):
                 try:
                     fn, size = take_snapshot(cam)
                 except ValueError:
-                    self._send(404, json.dumps({"ok": False, "err": "kamera tidak dikenal"}),
-                               "application/json", True)
+                    self._send(
+                        404,
+                        json.dumps({"ok": False, "err": "kamera tidak dikenal"}),
+                        "application/json",
+                        True,
+                    )
                     return
                 except Exception as e:
-                    self._send(502, json.dumps({"ok": False, "err": str(e)[:150]}),
-                               "application/json", True)
+                    self._send(
+                        502,
+                        json.dumps({"ok": False, "err": str(e)[:150]}),
+                        "application/json",
+                        True,
+                    )
                     return
                 write_log("snap", fn, cam, ip)
-                self._send(200, json.dumps({"ok": True, "cam": cam, "file": fn,
-                                            "size": size, "url": "/snaps/%s/%s" % (cam, fn)}),
-                           "application/json", True)
+                self._send(
+                    200,
+                    json.dumps(
+                        {
+                            "ok": True,
+                            "cam": cam,
+                            "file": fn,
+                            "size": size,
+                            "url": "/snaps/%s/%s" % (cam, fn),
+                        }
+                    ),
+                    "application/json",
+                    True,
+                )
                 return
             if u.path == "/api/record":
                 cam = (params.get("cam") or "").strip() or next(iter(CAMS), "")
@@ -995,24 +1197,47 @@ class H(BaseHTTPRequestHandler):
                     if action == "start":
                         fn = record_start(cam)
                         write_log("rec", "mulai " + fn, cam, ip)
-                        self._send(200, json.dumps({"ok": True, "cam": cam,
-                                                    "recording": True, "file": fn}),
-                                   "application/json", True)
+                        self._send(
+                            200,
+                            json.dumps(
+                                {"ok": True, "cam": cam, "recording": True, "file": fn}
+                            ),
+                            "application/json",
+                            True,
+                        )
                     elif action == "stop":
                         fn, dur, size = record_stop(cam)
                         write_log("rec", "selesai %s (%s dtk)" % (fn, dur), cam, ip)
-                        self._send(200, json.dumps({"ok": True, "cam": cam,
-                                                    "recording": False, "file": fn,
-                                                    "dur": dur, "size": size}),
-                                   "application/json", True)
+                        self._send(
+                            200,
+                            json.dumps(
+                                {
+                                    "ok": True,
+                                    "cam": cam,
+                                    "recording": False,
+                                    "file": fn,
+                                    "dur": dur,
+                                    "size": size,
+                                }
+                            ),
+                            "application/json",
+                            True,
+                        )
                     else:
-                        self._send(400, json.dumps({"ok": False,
-                                                    "err": "action harus start|stop"}),
-                                   "application/json", True)
+                        self._send(
+                            400,
+                            json.dumps({"ok": False, "err": "action harus start|stop"}),
+                            "application/json",
+                            True,
+                        )
                 except (ValueError, RuntimeError) as e:
                     code = 404 if "dikenal" in str(e) else 409
-                    self._send(code, json.dumps({"ok": False, "err": str(e)}),
-                               "application/json", True)
+                    self._send(
+                        code,
+                        json.dumps({"ok": False, "err": str(e)}),
+                        "application/json",
+                        True,
+                    )
                 return
             code, obj = self._handle_ptz(params)
             if code == 200 and obj.get("cmd") not in ("stop",):
@@ -1022,8 +1247,12 @@ class H(BaseHTTPRequestHandler):
             pass
         except Exception as e:
             try:
-                self._send(500, json.dumps({"ok": False, "err": str(e)}),
-                           "application/json", True)
+                self._send(
+                    500,
+                    json.dumps({"ok": False, "err": str(e)}),
+                    "application/json",
+                    True,
+                )
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
