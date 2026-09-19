@@ -2,7 +2,11 @@
 
 Dashboard CCTV ringan tanpa dependensi Python: 1 kamera (mudah ditambah), live HLS di browser, putar ulang arsip MP4 per 10 menit, retensi otomatis 7 hari.
 
-![Live](docs/live-1.jpg) ![Live](docs/live-2.jpg) ![Arsip](docs/arsip.jpg)
+![Kamera PTZ](docs/cctv-1.jpg) ![Kamera IP outdoor](docs/cctv-2.jpg) ![Monitor rekaman NVR](docs/cctv-3.jpg)
+
+*Gambar ilustrasi: [AxisCCTV3](https://commons.wikimedia.org/wiki/File:AxisCCTV3.jpg) oleh Raysonho (CC0),
+[Outdoor wireless security IP camera](https://commons.wikimedia.org/wiki/File:Outdoor_wireless_security_IP_camera_at_Nuthurst,_Sussex_2.jpg) oleh Acabashi (CC BY-SA 4.0),
+[Preview of the recordings captured by an IP camera](https://commons.wikimedia.org/wiki/File:Preview_of_the_recordings_captured_by_an_IP_camera.jpg) oleh Caka22 (CC BY-SA 3.0) — via Wikimedia Commons.*
 
 ## Fitur
 
